@@ -301,12 +301,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // The root colour is always opaque (Config), so the window's own black fill under it would be
         // one more full-screen pass every frame for nothing.
         getWindow().setBackgroundDrawable(null);
-        if (cfg.wallpaper != null) {
+        if (cfg.wallpaper != null || Config.WALLPAPER_AURORA.equals(cfg.wallpaperChoice)) {
             // Decoded while the tiles load; onResume waits for it, so the first frame still has it.
             File file = cfg.wallpaper;
             android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
             int screenW = dm.widthPixels, screenH = dm.heightPixels;
-            wallpaperLoad = java.util.concurrent.CompletableFuture.supplyAsync(() -> decodeWallpaper(file, screenW, screenH));
+            android.content.res.Resources resources = getResources();
+            wallpaperLoad = java.util.concurrent.CompletableFuture.supplyAsync(() -> decodeWallpaper(file, resources, screenW, screenH));
         }
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
@@ -456,16 +457,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
     }
 
+    /** A null theme file selects the bundled Aurora picture. */
+    private static java.io.InputStream openWallpaper(File file, android.content.res.Resources resources)
+            throws java.io.IOException {
+        return file != null ? new java.io.FileInputStream(file)
+                : resources.openRawResource(R.raw.aurora_wallpaper);
+    }
+
     /**
-     * A theme's full-screen picture behind everything. Only the centre that CENTER_CROP shows is decoded,
+     * A full-screen picture behind everything. Only the centre that CENTER_CROP shows is decoded,
      * halved while it still covers the screen and then scaled to it, so any picture, however wide or tall,
      * costs a screen-sized bitmap (about 4 MB at 1080p), which is the price of a wallpaper on a 1 GB TV (#166).
      */
-    private static Bitmap decodeWallpaper(File file, int screenW, int screenH) {
+    private static Bitmap decodeWallpaper(File file, android.content.res.Resources resources, int screenW, int screenH) {
         try {
             android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
             opts.inJustDecodeBounds = true;
-            android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
+            try (java.io.InputStream in = openWallpaper(file, resources)) {
+                android.graphics.BitmapFactory.decodeStream(in, null, opts);
+            }
             int w = opts.outWidth, h = opts.outHeight;
             if (w <= 0 || h <= 0 || screenW <= 0 || screenH <= 0) return null;
             // The centred part with the screen's aspect ratio: all that CENTER_CROP would show.
@@ -481,12 +491,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             while (crop.width() / (sample * 2) >= screenW && crop.height() / (sample * 2) >= screenH) sample *= 2;
             opts = new android.graphics.BitmapFactory.Options();
             opts.inSampleSize = sample;
-            opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;   // no alpha needed, half the memory
+            // The bundled 720p gradient needs full colour to avoid bands; it still uses less memory
+            // than a 1080p RGB_565 theme picture. External pictures retain the low-memory decode.
+            opts.inPreferredConfig = file == null ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
             android.graphics.Bitmap bmp;
-            try {
-                @SuppressWarnings("deprecation")   // newInstance(String) is API 31
+            try (java.io.InputStream in = openWallpaper(file, resources)) {
+                @SuppressWarnings("deprecation")   // newInstance(InputStream) is API 31
                 android.graphics.BitmapRegionDecoder decoder =
-                        android.graphics.BitmapRegionDecoder.newInstance(file.getPath(), false);
+                        android.graphics.BitmapRegionDecoder.newInstance(in, false);
                 try {
                     bmp = decoder.decodeRegion(crop, opts);
                 } finally {
@@ -495,7 +507,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             } catch (java.io.IOException unsupported) {
                 // A format the region decoder cannot read (GIF, BMP): whole picture, but never a huge one.
                 if ((long) (w / sample) * (h / sample) > 4L * screenW * screenH) return null;
-                bmp = android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
+                try (java.io.InputStream in = openWallpaper(file, resources)) {
+                    bmp = android.graphics.BitmapFactory.decodeStream(in, null, opts);
+                }
             }
             if (bmp == null) return null;
             if (bmp.getWidth() > screenW && bmp.getHeight() > screenH) {
@@ -661,7 +675,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        // Columns and motion are read once, in onCreate; the settings screen says when one changed.
+        // Launcher preferences are read once, in onCreate; settings reports when any choice changed.
         if (requestCode == LAUNCHER_SETTINGS_REQUEST && resultCode == RESULT_OK) recreate();
     }
 

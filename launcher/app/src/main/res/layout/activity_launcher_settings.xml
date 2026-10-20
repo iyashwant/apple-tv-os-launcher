@@ -1,92 +1,190 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The launcher's own settings, in the same glass as quick settings (styles.xml, Settings*). -->
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/settings_backdrop"
-    android:clipToPadding="false"
-    android:fillViewport="true"
-    android:scrollbars="none">
+    android:orientation="horizontal"
+    android:paddingStart="48dp"
+    android:paddingEnd="40dp"
+    android:paddingTop="36dp"
+    android:paddingBottom="32dp"
+    android:clipChildren="true"
+    android:clipToPadding="false">
 
     <LinearLayout
-        android:layout_width="600dp"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:clipChildren="false"
-        android:orientation="vertical"
-        android:paddingTop="44dp"
-        android:paddingBottom="44dp">
+        android:layout_width="264dp"
+        android:layout_height="match_parent"
+        android:layout_marginEnd="40dp"
+        android:orientation="vertical">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingStart="8dp"
-            android:text="@string/launcher_settings"
-            android:textColor="#FFFFFFFF"
-            android:textSize="34sp"
-            android:fontFamily="sans-serif-light"
-            android:letterSpacing="-0.01" />
+            android:text="CleanYourTV"
+            android:textColor="#99FFFFFF"
+            android:textSize="12sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.05" />
 
         <TextView
-            style="@style/SettingsSection"
-            android:layout_marginTop="30dp"
-            android:text="@string/columns_label" />
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/launcher_settings"
+            android:textColor="#FFFFFFFF"
+            android:textSize="38sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="-0.035"
+            android:lineSpacingExtra="-4dp" />
+
+        <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="148dp"
+            android:background="@drawable/settings_preview_bg"
+            android:clipToOutline="true">
+
+            <ImageView
+                android:id="@+id/settingsPreviewImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:importantForAccessibility="no" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="14dp"
+                android:text="@string/settings_preview_home"
+                android:textColor="#F2FFFFFF"
+                android:textSize="15sp"
+                android:fontFamily="sans-serif-medium"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_gravity="bottom"
+                android:layout_margin="12dp"
+                android:orientation="horizontal"
+                android:padding="6dp"
+                android:background="@drawable/settings_group_bg"
+                android:importantForAccessibility="noHideDescendants">
+                <ImageView style="@style/SettingsPreviewTile" android:src="@drawable/ic_quick_apps" />
+                <ImageView style="@style/SettingsPreviewTile" android:src="@drawable/ic_livetv" />
+                <ImageView style="@style/SettingsPreviewTile" android:src="@drawable/ic_quick_picture" />
+                <ImageView style="@style/SettingsPreviewTile" android:src="@drawable/ic_quick_screensaver" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/settingsPreviewCaption"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:textColor="#A6FFFFFF"
+            android:textSize="13sp"
+            android:fontFamily="sans-serif" />
+
+        <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/settingsDetailTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:textColor="#F2FFFFFF"
+            android:textSize="17sp"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:id="@+id/settingsDetailHint"
+            android:layout_width="match_parent"
+            android:layout_height="68dp"
+            android:layout_marginTop="8dp"
+            android:textColor="#99FFFFFF"
+            android:textSize="13sp"
+            android:fontFamily="sans-serif"
+            android:lineSpacingExtra="3sp"
+            android:maxLines="4"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <!-- The focus gutter belongs to the scrolling viewport, not to individual rows. -->
+    <ScrollView
+        android:id="@+id/settingsScroll"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="match_parent"
+        android:scrollbars="none"
+        android:padding="16dp"
+        android:clipChildren="true"
+        android:clipToPadding="false">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:layout_marginEnd="-12dp"
+            android:orientation="vertical"
             android:clipChildren="false"
-            android:orientation="horizontal">
+            android:clipToPadding="false">
 
-            <TextView android:id="@+id/columns4" style="@style/SettingsColumnChoice" android:text="4" />
-            <TextView android:id="@+id/columns5" style="@style/SettingsColumnChoice" android:text="5" />
-            <TextView android:id="@+id/columns6" style="@style/SettingsColumnChoice" android:text="6" />
-            <TextView android:id="@+id/columns7" style="@style/SettingsColumnChoice" android:text="7" />
+            <TextView style="@style/SettingsSection" android:text="@string/settings_appearance" />
+
+            <LinearLayout style="@style/SettingsGroup">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="@string/columns_label"
+                        android:textSize="16sp"
+                        android:fontFamily="sans-serif"
+                        android:textColor="#F2FFFFFF" />
+
+                    <LinearLayout
+                        android:layout_width="184dp"
+                        android:layout_height="38dp"
+                        android:orientation="horizontal"
+                        android:background="@drawable/settings_segment_bg"
+                        android:padding="3dp"
+                        android:clipChildren="false">
+                        <TextView android:id="@+id/columns4" style="@style/SettingsColumnChoice" android:text="4" />
+                        <TextView android:id="@+id/columns5" style="@style/SettingsColumnChoice" android:text="5" />
+                        <TextView android:id="@+id/columns6" style="@style/SettingsColumnChoice" android:text="6" />
+                        <TextView android:id="@+id/columns7" style="@style/SettingsColumnChoice" android:text="7" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <View style="@style/SettingsDivider" />
+                <com.gathin.tvhome.SettingsRowView android:id="@+id/wallpaperChoice" style="@style/SettingsRow" android:text="@string/settings_wallpaper" />
+            </LinearLayout>
+
+            <TextView style="@style/SettingsSection" android:layout_marginTop="22dp" android:text="@string/settings_experience" />
+            <LinearLayout style="@style/SettingsGroup">
+                <com.gathin.tvhome.SettingsRowView android:id="@+id/animationsChoice" style="@style/SettingsRow" android:text="@string/settings_animations" />
+                <View style="@style/SettingsDivider" />
+                <com.gathin.tvhome.SettingsRowView android:id="@+id/advancedChoice" style="@style/SettingsRow" android:text="@string/advanced_effects" />
+                <View style="@style/SettingsDivider" />
+                <com.gathin.tvhome.SettingsRowView android:id="@+id/soundsChoice" style="@style/SettingsRow" android:text="@string/settings_sounds" />
+            </LinearLayout>
+
+            <TextView style="@style/SettingsSection" android:layout_marginTop="22dp" android:text="@string/settings_system" />
+            <LinearLayout style="@style/SettingsGroup">
+                <com.gathin.tvhome.SettingsRowView android:id="@+id/followThemeChoice" style="@style/SettingsRow" android:text="@string/settings_follow_theme" />
+                <View style="@style/SettingsDivider" />
+                <com.gathin.tvhome.SettingsRowView android:id="@+id/defaultHomeChoice" style="@style/SettingsRow" android:text="@string/home_settings" />
+                <View style="@style/SettingsDivider" />
+                <com.gathin.tvhome.SettingsRowView android:id="@+id/tvSettingsChoice" style="@style/SettingsRow" android:text="@string/tv_settings" />
+            </LinearLayout>
         </LinearLayout>
-
-        <TextView
-            android:id="@+id/animationsChoice"
-            style="@style/SettingsRow"
-            android:layout_marginTop="30dp" />
-
-        <TextView
-            android:id="@+id/advancedChoice"
-            style="@style/SettingsRow"
-            android:layout_marginTop="12dp" />
-
-        <TextView
-            style="@style/SettingsHint"
-            android:layout_marginTop="8dp"
-            android:text="@string/advanced_effects_warning" />
-
-        <TextView
-            android:id="@+id/followThemeChoice"
-            style="@style/SettingsRow"
-            android:layout_marginTop="22dp"
-            android:text="@string/follow_theme" />
-
-        <TextView
-            style="@style/SettingsHint"
-            android:layout_marginTop="8dp"
-            android:text="@string/follow_theme_hint" />
-
-        <TextView
-            android:id="@+id/defaultHomeChoice"
-            style="@style/SettingsRow"
-            android:layout_marginTop="30dp"
-            android:text="@string/home_settings" />
-
-        <TextView
-            style="@style/SettingsHint"
-            android:layout_marginTop="8dp"
-            android:text="@string/home_settings_help" />
-
-        <TextView
-            android:id="@+id/tvSettingsChoice"
-            style="@style/SettingsRow"
-            android:layout_marginTop="22dp"
-            android:text="@string/tv_settings" />
-    </LinearLayout>
-</ScrollView>
+    </ScrollView>
+</LinearLayout>

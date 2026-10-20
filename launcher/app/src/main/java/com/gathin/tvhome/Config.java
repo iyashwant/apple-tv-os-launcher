@@ -34,6 +34,9 @@ final class Config {
     static final String FILE_NAME = "config.json";
     static final String WALLPAPER_NAME = "wallpaper.jpg";
     static final String SETTINGS_NAME = "launcher_settings";
+    static final String WALLPAPER_THEME = "theme";
+    static final String WALLPAPER_AURORA = "aurora";
+    static final String WALLPAPER_OFF = "off";
     private static final String THEME_REVISION_NAME = "theme_revision";
     private static final String THEME_SIGNATURE_KEY = "theme_signature";
 
@@ -61,8 +64,10 @@ final class Config {
     final int backgroundColor;
     /** Time-of-day backdrop, 0 to 100 (config.xml, sky_intensity); 0 keeps the plain background. */
     final int skyIntensity;
-    /** Full-screen picture behind the launcher, or null for the plain colour. */
+    /** External theme picture, or null when absent or an on-TV wallpaper choice takes priority. */
     final File wallpaper;
+    /** On-TV picture choice; theme keeps the external wallpaper, Aurora uses the bundled picture. */
+    final String wallpaperChoice;
     /** Whether the overlay file was present and parsed. */
     final boolean overlayApplied;
 
@@ -71,7 +76,7 @@ final class Config {
                    int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
                    boolean shamsiDate, boolean moduleCards, boolean reducedMotion, boolean navigationSounds,
                    String vpnApp, boolean showHomeSettingsShortcut, int backgroundColor, int skyIntensity,
-                   File wallpaper, boolean overlayApplied, Map<String, String> settingsRoutes) {
+                   File wallpaper, String wallpaperChoice, boolean overlayApplied, Map<String, String> settingsRoutes) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
         this.liveTvPackage = liveTvPackage;
@@ -93,6 +98,7 @@ final class Config {
         this.backgroundColor = backgroundColor;
         this.skyIntensity = skyIntensity;
         this.wallpaper = wallpaper;
+        this.wallpaperChoice = wallpaperChoice;
         this.overlayApplied = overlayApplied;
     }
 
@@ -157,15 +163,20 @@ final class Config {
         if (chosenColumns >= 4 && chosenColumns <= 7) columns = chosenColumns;
         animations = choices.getBoolean("animations", animations);
         advancedEffects = choices.getBoolean("advanced_effects", advancedEffects);
+        navigationSounds = choices.getBoolean("navigation_sounds", navigationSounds);
+        String wallpaperChoice = choices.getString("wallpaper_choice", WALLPAPER_THEME);
+        if (!WALLPAPER_AURORA.equals(wallpaperChoice) && !WALLPAPER_OFF.equals(wallpaperChoice))
+            wallpaperChoice = WALLPAPER_THEME;
         File wallpaper = dir != null ? new File(dir, WALLPAPER_NAME) : null;
         if (wallpaper != null && !(wallpaper.isFile() && wallpaper.length() > 0)) wallpaper = null;
         // A theme can also switch the wallpaper off while the file is still there.
         if (json != null && json.has("wallpaper") && !bool(json, "wallpaper", true)) wallpaper = null;
+        if (!WALLPAPER_THEME.equals(wallpaperChoice)) wallpaper = null;
 
         return new Config(dock, hidden, liveTv, liveTvAction, panelService, panelAction, inputAction,
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
                 shamsi, moduleCards, reducedMotion, navigationSounds, vpn, homeSettings, background,
-                Math.max(0, Math.min(100, skyIntensity)), wallpaper, applied, settingsRoutes(res, json));
+                Math.max(0, Math.min(100, skyIntensity)), wallpaper, wallpaperChoice, applied, settingsRoutes(res, json));
     }
 
     private static Map<String, String> settingsRoutes(Resources res, JSONObject overlay) {
@@ -194,10 +205,11 @@ final class Config {
             // explicit theme push or reset by the updated tools.
             SharedPreferences.Editor editor = choices.edit();
             if (!"absent".equals(token)) editor.remove("columns").remove("animations")
-                    .remove("advanced_effects");
+                    .remove("advanced_effects").remove("navigation_sounds").remove("wallpaper_choice");
             editor.putString(THEME_SIGNATURE_KEY, signature).commit();
         } else if (!seen.equals(signature)) {
             choices.edit().remove("columns").remove("animations").remove("advanced_effects")
+                    .remove("navigation_sounds").remove("wallpaper_choice")
                     .putString(THEME_SIGNATURE_KEY, signature).commit();
         }
     }
