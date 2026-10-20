@@ -81,6 +81,10 @@ Launcher
   `dumpsys wifi | grep -o 'cname=[^ ]*'`: a Wi-Fi network saved during first setup belongs to it, and
   Android deletes that network the moment it is disabled, which takes the TV off Wi-Fi and ADB. If it
   does, ask me to forget the network and re-join it in Settings first.
+- On Google TV the stock launcher also answers the remote's app buttons (Netflix, YouTube and the like),
+  Input and Settings/dashboard buttons, so after disabling it ask me to press each one, and remap any that
+  do nothing with the launcher's key services: `input_key_keycodes` and `app_keys` with
+  INPUT_KEY_SERVICE=1, `settings_key_keycodes` with HOME_KEY_SERVICE=1 (`config.xml` or the theme).
 - On Android 11 and newer the launcher must declare `<queries>` for `android.intent.category.LEANBACK_LAUNCHER`,
   or package visibility silently hides every app and the grid comes up empty; target a recent SDK, some
   Google TV 14 sets refuse older targets at install.

@@ -7,8 +7,9 @@
 #        TV_HOST=192.168.1.50 tools/theme.sh --reset        # remove the overlay, back to config.xml
 set -euo pipefail
 # Resolve the theme folder against the caller's directory before moving into tools/.
+# Git Bash's pwd says /c/Users/..., which the Windows Python cannot open; pwd -W gives C:/Users/... (as in disable.sh).
 THEME_ARG="${1:-}"
-case "$THEME_ARG" in --reset|"") ;; /*) ;; *) THEME_ARG="$PWD/$THEME_ARG" ;; esac
+case "$THEME_ARG" in --reset|"") ;; /*) ;; *) THEME_ARG="$(pwd -W 2>/dev/null || pwd)/$THEME_ARG" ;; esac
 cd "$(dirname "$0")"
 : "${TV_HOST:?set TV_HOST to the TV IP address, e.g. TV_HOST=192.168.1.50 $0 themes/aurora}"
 PY=venv/bin/python
@@ -24,8 +25,10 @@ tv() { "$PY" -I tv.py "$@"; }
 # Restart Home so it rereads the theme. Android drops a force-stopped app's accessibility services from the
 # enabled list, which would switch off InputKeyService/HomeKeyService, so put the list back if it had ours.
 # Android removes them asynchronously while it handles the restart, so wait a second before writing the
-# list back, and switch accessibility on again as build-and-install does.
-RESTART="a=\$(settings get secure enabled_accessibility_services); am force-stop $PKG; case \"\$a\" in *$PKG*) sleep 1; settings put secure enabled_accessibility_services \"\$a\"; settings put secure accessibility_enabled 1 ;; esac; am start -n $PKG/.MainActivity >/dev/null"
+# list back. Writing the same list back is not enough: the force-stop also turns accessibility_enabled off,
+# and the service only binds again once the list changes. So restart first, then clear the list, write it
+# back and switch accessibility on again as build-and-install does.
+RESTART="a=\$(settings get secure enabled_accessibility_services); am force-stop $PKG; am start -n $PKG/.MainActivity >/dev/null; case \"\$a\" in *$PKG*) sleep 1; settings put secure enabled_accessibility_services ''; settings put secure enabled_accessibility_services \"\$a\"; settings put secure accessibility_enabled 1 ;; esac"
 
 if [ "${1:-}" = --reset ]; then
   tv "mkdir -p $DIR; rm -f $DIR/config.json $DIR/wallpaper.jpg; printf '%s' '$REVISION' > $DIR/theme_revision; $RESTART; echo reset" | tail -n 1
@@ -42,6 +45,18 @@ if [ -f "$THEME/wallpaper.jpg" ]; then
   "$PY" -I b64push.py "$THEME/wallpaper.jpg" "$DIR/wallpaper.jpg"
 else
   tv "rm -f $DIR/wallpaper.jpg" >/dev/null
+fi
+tv "mkdir -p $DIR/wallpapers; rm -f $DIR/wallpapers/*.jpg $DIR/wallpapers/*.jpeg $DIR/wallpapers/*.png $DIR/wallpapers/*.webp $DIR/wallpapers/*.JPG $DIR/wallpapers/*.JPEG $DIR/wallpapers/*.PNG $DIR/wallpapers/*.WEBP" >/dev/null
+if [ -d "$THEME/wallpapers" ]; then
+  for IMAGE in "$THEME"/wallpapers/*; do
+    [ -f "$IMAGE" ] || continue
+    case "$IMAGE" in
+      *.jpg|*.jpeg|*.png|*.webp|*.JPG|*.JPEG|*.PNG|*.WEBP)
+        NAME=$(basename "$IMAGE")
+        [[ "$NAME" =~ ^[A-Za-z0-9_.-]+$ ]] || { echo "unsupported wallpaper filename: $NAME" >&2; exit 1; }
+        "$PY" -I b64push.py "$IMAGE" "$DIR/wallpapers/$NAME" ;;
+    esac
+  done
 fi
 tv "printf '%s' '$REVISION' > $DIR/theme_revision" >/dev/null
 tv "$RESTART; echo applied" | tail -n 1

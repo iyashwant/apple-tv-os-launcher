@@ -63,7 +63,10 @@ public final class NavigationSmoke extends Instrumentation {
             burst(KeyEvent.KEYCODE_DPAD_LEFT, 6);
             expect(6, "Queued Left stops at row boundary");
             burst(KeyEvent.KEYCODE_DPAD_DOWN, 12);
-            expect(42, "Held Down stops at final row");
+            // The App Library row follows the final row: held Down ends there, and Up comes back to the same column.
+            expect(43, "Held Down passes the final row and stops on the App Library");
+            key(KeyEvent.KEYCODE_DPAD_UP, 100);
+            expect(42, "Up from the App Library returns to the final row's column");
             key(KeyEvent.KEYCODE_DPAD_UP, 100);
             expect(36, "Up leaves short final row");
             // Home during a layout transition must cancel its old deferred focus work.
@@ -175,7 +178,7 @@ public final class NavigationSmoke extends Instrumentation {
             settle();
             expect(0, "Resume after Home starts at first dock tile");
             key(KeyEvent.KEYCODE_DPAD_DOWN, 100);
-            expect(AppOrder.target(0, adapter.getItemCount(), adapter.columns(), AppOrder.Direction.DOWN),
+            expect(AppOrder.target(0, adapter.appCount(), adapter.columns(), AppOrder.Direction.DOWN),
                     "Rows remain navigable after resume");
             result.putString("stream", "PASS: " + checks + " navigation checks.\n");
             finish(-1, result);

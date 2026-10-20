@@ -63,9 +63,13 @@ public final class MenuSmoke extends Instrumentation {
                 key(KeyEvent.KEYCODE_DPAD_UP);
                 check(((TextView) menu.getContentView().findFocus()).getText().toString()
                         .equals(activity.getString(R.string.move_app)), "Up stays at first action");
+                // With the App Library on, Remove from Home follows App settings as the last action.
+                boolean library = (Boolean) field("appLibraryEnabled");
                 key(KeyEvent.KEYCODE_DPAD_DOWN); key(KeyEvent.KEYCODE_DPAD_DOWN); key(KeyEvent.KEYCODE_DPAD_DOWN);
+                key(KeyEvent.KEYCODE_DPAD_DOWN);
                 check(((TextView) menu.getContentView().findFocus()).getText().toString()
-                        .equals(activity.getString(R.string.app_settings)), "Down stays within last action");
+                        .equals(activity.getString(library ? R.string.library_remove_shortcut : R.string.app_settings)),
+                        "Down stays within last action");
                 key(KeyEvent.KEYCODE_BACK);
                 check(field("tileMenu") == null && adapter.keyAt(position).equals(field("lastFocusedKey")),
                         "Back returns to original app");

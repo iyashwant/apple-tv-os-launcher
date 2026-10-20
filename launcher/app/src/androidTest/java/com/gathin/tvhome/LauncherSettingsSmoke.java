@@ -170,6 +170,8 @@ public final class LauncherSettingsSmoke extends Instrumentation {
         rows.add(R.id.animationsChoice);
         if (settings.findViewById(R.id.advancedChoice).isEnabled()) rows.add(R.id.advancedChoice);
         rows.add(R.id.soundsChoice);
+        rows.add(R.id.libraryChoice);
+        rows.add(R.id.statsChoice);
         rows.add(R.id.followThemeChoice);
         rows.add(R.id.defaultHomeChoice);
         rows.add(R.id.tvSettingsChoice);

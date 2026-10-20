@@ -40,6 +40,8 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     @Override public void getItemOffsets(@NonNull Rect out, @NonNull View view,
             @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
         int pos = parent.getChildAdapterPosition(view);
+        // With fewer apps than dock slots the App Library row follows the dock directly; it is not part of it.
+        if (parent.getAdapter() instanceof AppAdapter && ((AppAdapter) parent.getAdapter()).isLibraryAt(pos)) return;
         if (enabled && pos >= 0 && pos < dockSize) {
             out.top = 0;
             out.bottom = rowInset();
@@ -72,7 +74,9 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             // Follow the laid-out slots, not app identities already shifted by notifyItemMoved.
             int pos = parent.getChildLayoutPosition(child);
             if (pos < 0 || pos >= dockSize) continue;
-            View card = child.findViewById(R.id.card);
+            RecyclerView.ViewHolder vh = parent.getChildViewHolder(child);
+            View card = vh instanceof AppAdapter.Holder ? ((AppAdapter.Holder) vh).card : child.findViewById(R.id.card);
+            if (card == null) continue;
             float l = child.getLeft() + card.getLeft();
             // Reordering translates individual tiles. The dock belongs to the first row's layout
             // and must never travel with those tiles into another row.

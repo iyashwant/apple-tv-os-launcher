@@ -19,6 +19,9 @@
     <string name="not_available">Indisponible sur cette TV</string>
     <string name="cant_open">Impossible d\'ouvrir %1$s</string>
     <string name="date_format">EEEE d MMMM</string>
+    <string name="stats_cpu">CPU %1$d%%</string>
+    <string name="stats_memory">Mémoire %1$d Mo libres</string>
+    <string name="stats_storage">Stockage %1$s libre</string>
     <string name="dream_name">Horloge</string>
     <string name="untitled_folder">Dossier sans titre</string>
     <string name="folder_item_removed">%1$s a été remis sur l’accueil</string>
@@ -81,4 +84,20 @@
     <string name="on">Activé</string>
     <string name="off">Désactivé</string>
     <string name="enable">Activer</string>
+    <string name="app_library">Bibliothèque d’applications</string>
+    <string name="library_empty">Aucune application à ouvrir</string>
+    <string name="library_on_home">Sur l’accueil</string>
+    <string name="library_add_home">Ajouter à l’accueil</string>
+    <string name="library_remove_shortcut">Retirer de l’accueil</string>
+    <string name="library_open">Ouvrir</string>
+    <string name="library_app_info">Infos sur l’application</string>
+    <string name="library_save_failed">Impossible d’enregistrer le raccourci</string>
+    <string name="library_recent">Nouvelle · Ajouter à l’accueil</string>
+    <string name="library_hint_add">Appuyer : ajouter à Accueil · Maintenir : options</string>
+    <string name="library_hint_open">Appuyer : ouvrir · Maintenir : options</string>
+    <plurals name="library_app_count">
+        <item quantity="one">%1$d application</item>
+        <item quantity="other">%1$d applications</item>
+    </plurals>
+    <string name="greeting_with_name">%1$s, %2$s</string>
 </resources>

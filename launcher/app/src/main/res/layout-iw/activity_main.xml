@@ -168,8 +168,30 @@
                             android:letterSpacing="0.08"
                             android:textAllCaps="true" />
                     </LinearLayout>
+
                 </LinearLayout>
             </LinearLayout>
+
+            <!-- System info (show_stats, or Launcher settings): one quiet line under the clock row, in the greeting's
+                 style. Outside leftBlock, so the top buttons stay level with the clock; gone, it takes no space. -->
+            <TextView
+                android:id="@+id/stats"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/leftBlock"
+                android:layout_alignStart="@id/leftBlock"
+                android:layout_alignEnd="@id/leftBlock"
+                android:layout_marginStart="4dp"
+                android:layout_marginTop="2dp"
+                android:gravity="right"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="#8CFFFFFF"
+                android:textSize="12sp"
+                android:fontFamily="@font/outfit_medium"
+                android:letterSpacing="0.08"
+                android:focusable="false"
+                android:visibility="gone" />
 
             <LinearLayout
                 android:id="@+id/topButtons"
@@ -192,6 +214,7 @@
                     android:contentDescription="@string/quick_settings"
                     android:tint="@drawable/pill_text"
                     android:src="@drawable/ic_settings" />
+
 
                 <TextView
                     android:id="@+id/btnWifi"

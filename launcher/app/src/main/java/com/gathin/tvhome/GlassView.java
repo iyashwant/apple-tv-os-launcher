@@ -19,6 +19,8 @@ public class GlassView extends View {
     private final float density;
     private float radius;
     private int tint;
+    /** A festive theme's colour (Festival), or 0: while set, the light keeps it instead of each app's colour. */
+    private int accent;
     private Bitmap mask;
     private boolean maskDirty = true;
 
@@ -30,11 +32,17 @@ public class GlassView extends View {
     }
 
     void setTint(int color) {
-        int opaque = 0xFF000000 | color;
+        int opaque = 0xFF000000 | (accent != 0 ? accent : color);
         if (tint == opaque) return;
         tint = opaque;
         light.setColorFilter(new PorterDuffColorFilter(opaque, PorterDuff.Mode.SRC_IN));
         invalidate();
+    }
+
+    /** Locks the light to this colour (a festival's diya gold); 0 hands it back to the focused app's colour. */
+    void setAccent(int argb) {
+        accent = argb;
+        if (argb != 0) setTint(argb);
     }
 
     void setRadius(float px) {

@@ -6,6 +6,9 @@ import android.content.Intent;
 import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityEvent;
 
+import java.util.Collections;
+import java.util.Map;
+
 /**
  * Sends the remote's Home button to this launcher on remotes that emit KEYCODE_ALL_APPS for Home
  * (Xiaomi sticks and boxes). Android TV 9 routes that key only to the system-image launcher, so once
@@ -20,12 +23,19 @@ public class HomeKeyService extends AccessibilityService {
     /** Remote buttons that should open Settings (config.xml, settings_key_scancodes and settings_key_keycodes). */
     private int[] settingsScancodes = new int[0];
     private int[] settingsKeycodes = new int[0];
+    private boolean settingsPanel;
+    /** app_keys, the same map InputKeyService reads, for setups that run only this service. */
+    private Map<Integer, String> appKeys = Collections.emptyMap();
 
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
         settingsScancodes = getResources().getIntArray(R.array.settings_key_scancodes);
-        settingsKeycodes = getResources().getIntArray(R.array.settings_key_keycodes);
+        // Keycodes and the panel choice can also come from a theme; theme.sh restarts this service.
+        Config config = Config.load(this);
+        settingsKeycodes = config.settingsKeycodes;
+        settingsPanel = config.settingsKeyPanel;
+        appKeys = RemoteKeys.parseAppKeys(config.appKeys);
     }
 
     private boolean isSettingsKey(KeyEvent event) {
@@ -40,13 +50,22 @@ public class HomeKeyService extends AccessibilityService {
         // The stock launcher handled the remote's Settings button; with it disabled the button does nothing.
         if (isSettingsKey(event)) {
             if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
-                // Open our controls without resetting Home's folder, scroll, or selected app.
+                // settings_key_panel: our glass controls over Home, without resetting its folder, scroll or
+                // selected app; otherwise the TV's own Settings (with any firmware route config.xml names).
+                Intent open = settingsPanel
+                        ? new Intent(this, MainActivity.class).setAction(MainActivity.ACTION_QUICK_SETTINGS)
+                                .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        : MainActivity.systemIntent(this, android.provider.Settings.ACTION_SETTINGS);
                 try {
-                    startActivity(new Intent(this, MainActivity.class).setAction(MainActivity.ACTION_QUICK_SETTINGS)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP));
+                    startActivity(open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                 } catch (ActivityNotFoundException | SecurityException ignored) {
                 }
             }
+            return true;
+        }
+        String app = appKeys.get(event.getKeyCode());
+        if (app != null) {
+            if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) RemoteKeys.launch(this, app);
             return true;
         }
         if (event.getKeyCode() != KeyEvent.KEYCODE_ALL_APPS) return false;

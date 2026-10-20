@@ -175,6 +175,10 @@
                 <com.gathin.tvhome.SettingsRowView android:id="@+id/advancedChoice" style="@style/SettingsRow" android:text="@string/advanced_effects" />
                 <View style="@style/SettingsDivider" />
                 <com.gathin.tvhome.SettingsRowView android:id="@+id/soundsChoice" style="@style/SettingsRow" android:text="@string/settings_sounds" />
+                <View style="@style/SettingsDivider" />
+                <com.gathin.tvhome.SettingsRowView android:id="@+id/libraryChoice" style="@style/SettingsRow" android:text="@string/app_library" />
+                <View style="@style/SettingsDivider" />
+                <com.gathin.tvhome.SettingsRowView android:id="@+id/statsChoice" style="@style/SettingsRow" android:text="@string/settings_stats" />
             </LinearLayout>
 
             <TextView style="@style/SettingsSection" android:layout_marginTop="22dp" android:text="@string/settings_system" />

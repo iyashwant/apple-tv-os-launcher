@@ -4,9 +4,9 @@ A theme is a folder with a `config.json` and, optionally, a `wallpaper.jpg`. Pus
 launcher's dock, layout and look on the TV without rebuilding the APK: the launcher reads
 `config.json` as an overlay over its built-in `config.xml` the next time it starts.
 Choices made in Launcher settings take priority until you choose Follow theme. Pushing a theme or
-using `tools/theme.sh --reset` also clears those on-TV layout, motion, sound and wallpaper choices.
+using `tools/theme.sh --reset` also clears those on-TV layout, motion, sound, wallpaper, App Library and System info choices.
 Launcher settings includes a Navigation sounds toggle and a Wallpaper row: press OK to cycle through
-Theme (the pushed wallpaper), the bundled Aurora picture, and Off. Changes apply on returning Home;
+Theme (the pushed wallpaper, or its rotating `wallpapers/` collection), the bundled Aurora picture, and Off. Changes apply on returning Home;
 the sound toggle also applies immediately within Launcher settings. These choices leave theme files intact.
 
 ```bash
@@ -19,6 +19,7 @@ powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 th
 |---|---|
 | `default/` | The built-in look written out as JSON, as a starting point for your own |
 | `aurora/` | A dark aurora wallpaper (teal and violet on navy, darker at the bottom) with a matching background colour |
+| `dussehra/` | Festive skin for Dussehra (ends 21 Oct 2026): a marigold toran, a faint gold rangoli, a diya for Wi-Fi, a bell for Inputs, a marigold for Settings and a petal shower |
 | `six-columns/` | Six smaller tiles per row and one grid row visible under the dock |
 
 ## Keys
@@ -41,7 +42,10 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `quick_screensaver_action` | string | Optional firmware action that starts the current screensaver |
 | `columns` | 1 to 8 | Tiles per row; tiles shrink to fit from 5 up |
 | `rows_below_dock` | 0 to 3 | Grid rows left visible under the dock |
+| `dock_title` | bool | The focused dock app's name in large type on the top shelf (`true`); `false` keeps only the app-colour glow |
+| `app_library` | bool | The App Library pill after the last Home row: every installed app, add one to Home or take it off (`true` by default; also in Launcher settings). The Home choices stay on the TV when a theme is pushed or reset; see [docs/app-library.md](../docs/app-library.md) |
 | `shamsi_date` | bool | Show the Solar Hijri date above the Gregorian one |
+| `greeting_name` | string | A name after the greeting, e.g. `"Mr. Trịnh"` for GOOD MORNING, MR. TRỊNH; empty for the greeting alone |
 | `module_cards` | bool | Look for module cards and ask about them (`true`); `false` turns the feature off |
 | `reduced_motion` | bool | Calmer motion for weak GPUs: stiff highlight spring, no tile overshoot, short fades, no entrance replay |
 | `navigation_sounds` | bool | Navigation and button sounds for Home tiles, folders, header buttons and quick settings; defaults to `true`. Set `false` to silence them; follows the TV's system sound setting |
@@ -49,9 +53,20 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `animations` | bool | Motion of tiles, the glass, the top shelf, the expanding grid, folders and menus; true by default. `false` keeps the focused look but jumps each change to its end |
 | `advanced_effects` | bool | Optional lifted tile, artwork zoom, smooth ambient colour and app opening effects; false by default |
 | `show_home_settings_shortcut` | bool | Keep the optional Default-home tile visible when the TV has a home picker; false by default |
+| `show_stats` | bool | One quiet line under the clock with CPU, free memory and free storage (System info in Launcher settings). Off unless set |
 | `background_color` | `#RRGGBB` | Colour behind everything; black by default |
 | `sky_intensity` | 0 to 100 | Time-of-day backdrop: a dark gradient that follows the clock, 0 hides it (default) |
 | `wallpaper` | bool | Show `wallpaper.jpg` from the theme folder (`true`), or ignore it (`false`) |
+| `wallpaper_rotation_minutes` | 0 to 1440 | Randomly rotate images in the theme's `wallpapers/` folder at this interval; 0 keeps the single-image behaviour |
+| `wallpaper_dim` | 0 to 90 | Black overlay over wallpaper images, in percent; 0 by default |
+| `festival` | string | Turns on a festive skin: the network pill becomes a diya whose flame follows the connection, Inputs a temple bell, Settings a marigold, and the first Home of the day gets a petal shower. `dussehra` and `diwali` have built-in greetings |
+| `festival_until` | `YYYY-MM-DD` | Last day the festive skin shows; it switches itself off after that. A malformed date turns it off |
+| `greeting` | string | Replaces the time-of-day greeting while the festive skin is on |
+| `accent_color` | `#RRGGBB` | Colour of the focus light while the festive skin is on, in place of each app's colour; diya gold if not set |
+| `settings_key_keycodes` | list of keycodes | Remote buttons that open Settings, for `HomeKeyService` (TCL Google TV gear: `[83]`) |
+| `settings_key_panel` | bool | The remote's Settings button opens Home's glass quick settings (`true`, the default) or the TV's own Settings (`false`) |
+| `input_key_keycodes` | list of keycodes | More remote buttons that open the input switcher, for `InputKeyService` (`KEYCODE_TV` and `KEYCODE_TV_INPUT` always do) |
+| `app_keys` | list of strings | Remote buttons that open an app, as `"190:com.google.android.youtube.tv"` or `"KEYCODE_BUTTON_3:com.google.android.youtube.tv"`, for `InputKeyService` or `HomeKeyService` |
 
 ## Firmware settings routes
 
@@ -102,7 +117,27 @@ not a new permission; a theme cannot change the installed APK's manifest.
 
 `wallpaper.jpg` is drawn full screen behind the launcher, centre-cropped. Keep it dark, 1920×1080 and
 under about 300 KB: the text, the hero name and the dock band are designed for black, and a 1 GB TV
-decodes the picture into memory on every Home start. Pictures larger than the screen are downsampled.
+decodes the picture into memory on every Home start. Pictures larger than the screen are scaled down to
+it; a picture that is still over 4K (about 8.4 million pixels) after it is sampled down to the screen is not shown at all, and the plain colour stays.
+
+For a wallpaper collection, place JPEG, PNG or WebP files in the theme’s `wallpapers/` folder beside `config.json`, then set:
+
+```json
+{ "wallpaper": true, "wallpaper_rotation_minutes": 30, "wallpaper_dim": 40 }
+```
+
+When you apply a theme, its collection replaces the one already on the TV. Use filenames containing
+only letters, digits, underscores, dots and hyphens. Images can come from any source; check that you
+have permission to use them. The launcher considers
+up to 100 nonempty images, at most 10 MB each, skips unreadable files and keeps the last good background.
+An empty collection falls back to `wallpaper.jpg`, or the background colour if no image is available.
+`"wallpaper": false` disables both single-image and collection backgrounds.
+
+Selection is random without an immediate repeat when alternatives exist. The current image and its
+change time survive app/process restarts. Rotation runs only while Home is visible; on return from
+another app, an overdue background changes then. Images are decoded on a worker thread and bounded
+to the screen size. There is no download service, Internet permission or computer-side scheduler.
+The original system idle screensaver is left unchanged.
 
 ## Reduced motion
 

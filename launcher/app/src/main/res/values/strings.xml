@@ -35,6 +35,11 @@
     <string name="not_available">Not available on this TV</string>
     <string name="cant_open">Can\'t open %1$s</string>
     <string name="date_format">EEEE  d MMMM</string>
+    <!-- Date next to the clock on Home; a locale can split it over two lines with \n. -->
+    <string name="date_format_home" translatable="false">@string/date_format</string>
+    <string name="stats_cpu">CPU %1$d%%</string>
+    <string name="stats_memory">Memory %1$d MB free</string>
+    <string name="stats_storage">Storage %1$s free</string>
     <string name="dream_name">Clock</string>
     <string name="vpn">VPN</string>
     <string name="vpn_off">VPN off</string>
@@ -53,6 +58,9 @@
     <string name="settings_columns_hint">Choose how many apps appear in each row. Your dock and app grid adjust together.</string>
     <string name="settings_animations_hint">Smooth movement as you browse apps, open folders and return to Home.</string>
     <string name="settings_sounds_hint">Play a sound as you move and select. Follows your TV\'s system sound setting.</string>
+    <string name="settings_app_library_hint">A glass button after your last row of apps opens every installed app, including phone apps, to add to Home. Hold OK on a tile to remove it from Home.</string>
+    <string name="settings_stats">System info</string>
+    <string name="settings_stats_hint">A quiet line under the clock with CPU use, free memory and free storage, updated every 10 seconds.</string>
     <string name="settings_system_hint">Open your TV\'s settings for picture, audio, network and connected devices.</string>
     <string name="columns_label">Apps per row</string>
     <string name="animations_state">Animations: %1$s</string>
@@ -114,4 +122,21 @@
     <string name="card_state_new_key">New key</string>
     <string name="card_state_new_label">New name</string>
     <string name="remove_from_folder">Remove from folder</string>
+    <string name="app_library">App Library</string>
+    <string name="library_empty">No launchable apps found</string>
+    <string name="library_on_home">On Home</string>
+    <string name="library_add_home">Add to Home</string>
+    <string name="library_remove_shortcut">Remove from Home</string>
+    <string name="library_open">Open</string>
+    <string name="library_app_info">App info</string>
+    <string name="library_save_failed">Could not save the shortcut</string>
+    <string name="library_recent">New · Add to Home</string>
+    <string name="library_hint_add">Press to add to Home · Hold for options</string>
+    <string name="library_hint_open">Press to open · Hold for options</string>
+    <plurals name="library_app_count">
+        <item quantity="one">%1$d app</item>
+        <item quantity="other">%1$d apps</item>
+    </plurals>
+    <!-- The greeting, then greeting_name: "Good morning, Mr. Trịnh". -->
+    <string name="greeting_with_name">%1$s, %2$s</string>
 </resources>

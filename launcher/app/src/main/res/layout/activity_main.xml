@@ -154,10 +154,12 @@
                             android:gravity="left"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:singleLine="true"
+                            android:singleLine="@bool/date_single_line"
+                            android:maxLines="2"
+                            android:lineSpacingExtra="6dp"
                             android:ellipsize="end"
-                            android:format12Hour="@string/date_format"
-                            android:format24Hour="@string/date_format"
+                            android:format12Hour="@string/date_format_home"
+                            android:format24Hour="@string/date_format_home"
                             android:textColor="#A6FFFFFF"
                             android:textSize="14sp"
                             android:fontFamily="@font/outfit_regular"
@@ -165,7 +167,29 @@
                             android:textAllCaps="true" />
                     </LinearLayout>
                 </LinearLayout>
+
             </LinearLayout>
+
+            <!-- System info (show_stats, or Launcher settings): one quiet line under the clock row, in the greeting's
+                 style. Outside leftBlock, so the top buttons stay level with the clock; gone, it takes no space. -->
+            <TextView
+                android:id="@+id/stats"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/leftBlock"
+                android:layout_alignStart="@id/leftBlock"
+                android:layout_alignEnd="@id/leftBlock"
+                android:layout_marginStart="4dp"
+                android:layout_marginTop="2dp"
+                android:gravity="left"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="#8CFFFFFF"
+                android:textSize="12sp"
+                android:fontFamily="@font/outfit_medium"
+                android:letterSpacing="0.08"
+                android:focusable="false"
+                android:visibility="gone" />
 
             <LinearLayout
                 android:id="@+id/topButtons"

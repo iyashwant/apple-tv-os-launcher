@@ -42,7 +42,7 @@ public final class LauncherSmoke extends Instrumentation {
                 try { seed(); } catch (Exception e) { throw new RuntimeException(e); }
             });
             settle();
-            check(activeAdapter().getItemCount() == 36, "36 fixture apps");
+            check(activeAdapter().appCount() == 36, "36 fixture apps");
             Bitmap[] halo = new Bitmap[1];
             runOnMainSync(() -> {
                 GlassView light = new GlassView(activity, null);

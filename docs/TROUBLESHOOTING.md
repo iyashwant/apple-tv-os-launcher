@@ -28,6 +28,10 @@ Things that bit us or contributors, so they don't bite you. Commands use `tools/
   switches the USB port to ADB device mode, which cuts the power to a USB speaker or drive. Switch
   USB debugging off when you're done; the launcher doesn't need it.
 - **Close port 5555 when you're done**: plaintext, and a shell for anyone on the LAN when `ro.adb.secure=0`. Steps in the README FAQ.
+- **The TV sits on a separate VLAN or IoT network** and `tools/tv.py` times out although debugging
+  is on: the router keeps the computer from reaching it. Add a temporary firewall rule from your
+  computer to the TV on tcp/5555 only, and remove it again when you close ADB. Opening the whole
+  segment, or moving the TV onto the main network for good, undoes the reason it was separate.
 - **Windows PowerShell 5.1 adds a byte-order mark** to text piped into a program, which turned the
   first batch command into gibberish. `tv.py` now strips it, and the `.ps1` scripts pipe clean UTF-8.
 - **"Allow USB debugging?" comes back** although `adb devices` already works: `tv.py` used its own
@@ -57,6 +61,10 @@ Things that bit us or contributors, so they don't bite you. Commands use `tools/
   `Success` while HOME still resolves to the stock launcher (priority 2) until that one is disabled.
   And check which packages actually handle HOME before disabling anything by name: on the Sony
   above, `com.google.android.leanbacklauncher` has a boot receiver but no HOME activity.
+  `tools/disable.sh` now does that check itself: when the list holds the app that owns Home and
+  nothing else on the TV answers HOME, it skips that entry and says so (`FORCE_HOME=1` overrides),
+  so applying a list before the handover no longer leaves the TV without a launcher. Apply the list
+  again after the install script has made the new launcher Home to disable the old one.
 - **The new launcher still doesn't own Home** after the stock one is disabled, seen on Google TV
   (Xiaomi MiTV-MOOR2). Another system app answers HOME: `com.google.android.tungsten.setupwraith`,
   with `.MainActivity` at intent-filter priority 4 and `.RecoveryActivity` at priority 1. You
@@ -122,7 +130,7 @@ tools/tv.py 'dumpsys accessibility'
 | Helper | Component in the enabled-services list | Key it filters |
 | --- | --- | --- |
 | Home button | `com.gathin.tvhome/.HomeKeyService` | `KEYCODE_ALL_APPS` (not an ordinary `KEYCODE_HOME`) |
-| Input button | `com.gathin.tvhome/.InputKeyService` | `KEYCODE_TV` |
+| Input button | `com.gathin.tvhome/.InputKeyService` | `KEYCODE_TV`, `KEYCODE_TV_INPUT`, plus the keycodes in `input_key_keycodes` and `app_keys` (`config.xml` or a theme) |
 
 - **Enabled** means the component is in that user's colon-separated list (the class may be written in
   full, `com.gathin.tvhome/com.gathin.tvhome.HomeKeyService`). Match the whole component.
@@ -130,9 +138,20 @@ tools/tv.py 'dumpsys accessibility'
   builds). Give it a few seconds after enabling and read again. Labels in the dump can be translated or
   shared with other services; a line containing "Home" is not proof.
 - **Working** means the physical button does the right thing from inside another app. An injected key
-  over ADB proves navigation, not that the remote sends the code this helper filters.
+  over ADB proves navigation, not that the remote sends the code this helper filters. It does not even
+  reach the helper: `input keyevent` skips accessibility key filtering, so an injected `KEYCODE_TV` does
+  nothing even when the real Input button works.
+- **Which keycode** a dead button sends: `dumpsys window policy` lists the "global keys" Android routes
+  to one app (on Google TV several go to launcherx, which is disabled), and Xiaomi firmware logs every
+  press as `handleAction<keycode>` in `logcat`. Put it in `input_key_keycodes` (opens Inputs) or
+  `app_keys` (`keycode:package`), reinstall with `INPUT_KEY_SERVICE=1` and press the real button.
 
 Enabled but never bound points at a firmware restriction on auto-starting sideloaded services (some TCL
 builds log `OP_AUTO_START` denials). Look at `logcat` for the binding failure before changing settings,
-and do not rewrite the enabled-services list or grant app-ops as a blanket fix. When reporting, give the
+and do not rewrite the enabled-services list or grant app-ops as a blanket fix. On a TCL 55S470G (Google
+TV 12) the line is `[TclAppBoot] ... calleeComponent = 'com.gathin.tvhome/.HomeKeyService', bootType =
+'bind_service', isAllow = 'false', reason = 'callee_does't_have_OP_AUTO_START_permission.'`, and
+`appops get com.gathin.tvhome` shows `APP_AUTO_START: ignore`. Allowing that one op for the launcher only
+(`appops set com.gathin.tvhome APP_AUTO_START allow`) made the service bind on its own after a restart;
+toggling the service off and on in Accessibility works until the next restart. When reporting, give the
 model, build, current user and the relevant redacted lines, not the raw dump.

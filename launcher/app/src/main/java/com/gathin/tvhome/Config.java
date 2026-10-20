@@ -54,29 +54,57 @@ final class Config {
     final boolean advancedEffects;
     final int rowsBelowDock;
     final boolean shamsiDate;
+    /** Name after the greeting ("Good morning, Mr. Trịnh"); empty for the greeting alone. */
+    final String greetingName;
     final boolean moduleCards;
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): stiff spring, short fades, no replay. */
     final boolean reducedMotion;
     final boolean navigationSounds;
+    /** The focused dock app's name in large type on the top shelf (config.xml, dock_title); the glow stays either way. */
+    final boolean dockTitle;
     final String vpnApp;
     final boolean showHomeSettingsShortcut;
+    /** One line under the clock: CPU, free memory, free storage. Off unless config or a theme turns it on. */
+    final boolean showStats;
+    /** App Library pill after the last Home row (config.xml app_library, or Launcher settings). */
+    final boolean appLibrary;
     /** Background colour behind everything, #RRGGBB; black unless a theme says otherwise. */
     final int backgroundColor;
     /** Time-of-day backdrop, 0 to 100 (config.xml, sky_intensity); 0 keeps the plain background. */
     final int skyIntensity;
+    /** Remote keycodes that open Settings through HomeKeyService (config.xml, settings_key_keycodes). */
+    final int[] settingsKeycodes;
+    /** Extra keycodes that open the input switcher in InputKeyService (config.xml input_key_keycodes). */
+    final int[] inputKeycodes;
+    /** Remote buttons that open an app, "keycode:package" or "KEYCODE_NAME:package" (config.xml app_keys). */
+    final List<String> appKeys;
+    /** The remote's Settings button opens the glass quick settings instead of the TV's Settings (settings_key_panel). */
+    final boolean settingsKeyPanel;
+    /** Whether themes may show a wallpaper (config.json, wallpaper). */
+    final boolean wallpaperEnabled;
     /** External theme picture, or null when absent or an on-TV wallpaper choice takes priority. */
     final File wallpaper;
+    /** Rotating theme images, or the single theme picture; empty when an on-TV choice replaces the theme's. */
+    final List<File> wallpapers;
+    final int wallpaperRotationMinutes;
+    final int wallpaperDim;
     /** On-TV picture choice; theme keeps the external wallpaper, Aurora uses the bundled picture. */
     final String wallpaperChoice;
     /** Whether the overlay file was present and parsed. */
     final boolean overlayApplied;
+    /** Festive skin from a theme (festival, festival_until, greeting, accent_color); {@link Festival#NONE} if none. */
+    final Festival festival;
 
-    private Config(List<String> dockApps, List<String> hiddenApps, String liveTvPackage, String liveTvAction,
-                   String sourcePanelService, String sourcePanelAction, String inputAction,
+    private Config(List<String> dockApps, List<String> hiddenApps, String liveTvPackage,
+                   String liveTvAction, String sourcePanelService, String sourcePanelAction, String inputAction,
                    int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
-                   boolean shamsiDate, boolean moduleCards, boolean reducedMotion, boolean navigationSounds,
-                   String vpnApp, boolean showHomeSettingsShortcut, int backgroundColor, int skyIntensity,
-                   File wallpaper, String wallpaperChoice, boolean overlayApplied, Map<String, String> settingsRoutes) {
+                   boolean shamsiDate, String greetingName, boolean moduleCards, boolean reducedMotion,
+                   boolean navigationSounds, boolean dockTitle, String vpnApp, boolean showHomeSettingsShortcut,
+                   boolean showStats, boolean appLibrary, int backgroundColor, int skyIntensity,
+                   int[] settingsKeycodes, boolean settingsKeyPanel, int[] inputKeycodes, List<String> appKeys,
+                   boolean wallpaperEnabled, File wallpaper, List<File> wallpapers, int wallpaperRotationMinutes,
+                   int wallpaperDim, String wallpaperChoice, boolean overlayApplied, Festival festival,
+                   Map<String, String> settingsRoutes) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
         this.liveTvPackage = liveTvPackage;
@@ -90,16 +118,29 @@ final class Config {
         this.animations = animations;
         this.advancedEffects = advancedEffects;
         this.shamsiDate = shamsiDate;
+        this.greetingName = greetingName;
         this.moduleCards = moduleCards;
         this.reducedMotion = reducedMotion;
         this.navigationSounds = navigationSounds;
+        this.dockTitle = dockTitle;
         this.vpnApp = vpnApp;
         this.showHomeSettingsShortcut = showHomeSettingsShortcut;
+        this.showStats = showStats;
+        this.appLibrary = appLibrary;
         this.backgroundColor = backgroundColor;
         this.skyIntensity = skyIntensity;
+        this.settingsKeycodes = settingsKeycodes;
+        this.settingsKeyPanel = settingsKeyPanel;
+        this.inputKeycodes = inputKeycodes;
+        this.appKeys = Collections.unmodifiableList(appKeys);
+        this.wallpaperEnabled = wallpaperEnabled;
         this.wallpaper = wallpaper;
+        this.wallpapers = Collections.unmodifiableList(wallpapers);
+        this.wallpaperRotationMinutes = wallpaperRotationMinutes;
+        this.wallpaperDim = wallpaperDim;
         this.wallpaperChoice = wallpaperChoice;
         this.overlayApplied = overlayApplied;
+        this.festival = festival;
     }
 
     /** The folder the theme tools push into; null when external storage is unavailable. */
@@ -121,13 +162,21 @@ final class Config {
         boolean animations = res.getBoolean(R.bool.animations);
         boolean advancedEffects = res.getBoolean(R.bool.advanced_effects);
         boolean shamsi = res.getBoolean(R.bool.shamsi_date);
+        String greetingName = res.getString(R.string.greeting_name).trim();
         boolean moduleCards = res.getBoolean(R.bool.module_cards);
         boolean reducedMotion = res.getBoolean(R.bool.reduced_motion);
         boolean navigationSounds = res.getBoolean(R.bool.navigation_sounds);
+        boolean dockTitle = res.getBoolean(R.bool.dock_title);
         String vpn = res.getString(R.string.vpn_app).trim();
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
+        boolean showStats = res.getBoolean(R.bool.show_stats);
+        boolean library = res.getBoolean(R.bool.app_library);
         int background = 0xFF000000;
         int skyIntensity = res.getInteger(R.integer.sky_intensity);
+        int[] settingsKeycodes = res.getIntArray(R.array.settings_key_keycodes);
+        boolean settingsKeyPanel = res.getBoolean(R.bool.settings_key_panel);
+        int[] inputKeycodes = res.getIntArray(R.array.input_key_keycodes);
+        List<String> appKeys = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.app_keys)));
         boolean applied = false;
 
         File dir = dir(ctx);
@@ -147,13 +196,21 @@ final class Config {
             animations = bool(json, "animations", animations);
             advancedEffects = bool(json, "advanced_effects", advancedEffects);
             shamsi = bool(json, "shamsi_date", shamsi);
+            greetingName = string(json, "greeting_name", greetingName).trim();
             moduleCards = bool(json, "module_cards", moduleCards);
             reducedMotion = bool(json, "reduced_motion", reducedMotion);
             navigationSounds = bool(json, "navigation_sounds", navigationSounds);
+            dockTitle = bool(json, "dock_title", dockTitle);
             vpn = string(json, "vpn_app", vpn);
             homeSettings = bool(json, "show_home_settings_shortcut", homeSettings);
+            showStats = bool(json, "show_stats", showStats);
+            library = bool(json, "app_library", library);
             background = color(json, "background_color", background);
             skyIntensity = integer(json, "sky_intensity", skyIntensity, 0, 100);
+            settingsKeycodes = intArray(json, "settings_key_keycodes", settingsKeycodes);
+            settingsKeyPanel = bool(json, "settings_key_panel", settingsKeyPanel);
+            inputKeycodes = intArray(json, "input_key_keycodes", inputKeycodes);
+            appKeys = stringList(json, "app_keys", appKeys);
         }
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
         // current theme without clearing choices from an older launcher version.
@@ -164,19 +221,39 @@ final class Config {
         animations = choices.getBoolean("animations", animations);
         advancedEffects = choices.getBoolean("advanced_effects", advancedEffects);
         navigationSounds = choices.getBoolean("navigation_sounds", navigationSounds);
+        library = choices.getBoolean("app_library", library);
+        showStats = choices.getBoolean("show_stats", showStats);
         String wallpaperChoice = choices.getString("wallpaper_choice", WALLPAPER_THEME);
         if (!WALLPAPER_AURORA.equals(wallpaperChoice) && !WALLPAPER_OFF.equals(wallpaperChoice))
             wallpaperChoice = WALLPAPER_THEME;
         File wallpaper = dir != null ? new File(dir, WALLPAPER_NAME) : null;
         if (wallpaper != null && !(wallpaper.isFile() && wallpaper.length() > 0)) wallpaper = null;
         // A theme can also switch the wallpaper off while the file is still there.
-        if (json != null && json.has("wallpaper") && !bool(json, "wallpaper", true)) wallpaper = null;
-        if (!WALLPAPER_THEME.equals(wallpaperChoice)) wallpaper = null;
+        boolean wallpaperEnabled = json == null || bool(json, "wallpaper", true);
+        if (!wallpaperEnabled) wallpaper = null;
+        int rotationMinutes = json == null ? 0 : integer(json, "wallpaper_rotation_minutes", 0, 0, 1440);
+        int wallpaperDim = json == null ? 0 : integer(json, "wallpaper_dim", 0, 0, 90);
+        List<File> wallpapers = new ArrayList<>();
+        // The theme's pictures only while Launcher settings follows the theme: Aurora and Off replace them.
+        if (WALLPAPER_THEME.equals(wallpaperChoice)) {
+            if (rotationMinutes > 0 && dir != null && wallpaperEnabled) {
+                wallpapers.addAll(WallpaperRotation.images(new File(dir, "wallpapers")));
+            }
+            if (wallpapers.isEmpty() && wallpaper != null) wallpapers.add(wallpaper);
+        } else {
+            wallpaper = null;
+        }
+        // A festive skin comes only from a theme; config.xml has no festival.
+        Festival festival = json == null ? Festival.NONE : Festival.parse(string(json, "festival", ""),
+                string(json, "festival_until", ""), string(json, "greeting", ""), string(json, "accent_color", ""));
 
         return new Config(dock, hidden, liveTv, liveTvAction, panelService, panelAction, inputAction,
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
-                shamsi, moduleCards, reducedMotion, navigationSounds, vpn, homeSettings, background,
-                Math.max(0, Math.min(100, skyIntensity)), wallpaper, wallpaperChoice, applied, settingsRoutes(res, json));
+                shamsi, greetingName, moduleCards, reducedMotion, navigationSounds, dockTitle, vpn, homeSettings,
+                showStats, library, background, Math.max(0, Math.min(100, skyIntensity)),
+                settingsKeycodes, settingsKeyPanel, inputKeycodes, appKeys,
+                wallpaperEnabled, wallpaper, wallpapers, rotationMinutes, wallpaperDim, wallpaperChoice, applied,
+                festival, settingsRoutes(res, json));
     }
 
     private static Map<String, String> settingsRoutes(Resources res, JSONObject overlay) {
@@ -205,11 +282,12 @@ final class Config {
             // explicit theme push or reset by the updated tools.
             SharedPreferences.Editor editor = choices.edit();
             if (!"absent".equals(token)) editor.remove("columns").remove("animations")
-                    .remove("advanced_effects").remove("navigation_sounds").remove("wallpaper_choice");
+                    .remove("advanced_effects").remove("navigation_sounds").remove("wallpaper_choice")
+                    .remove("app_library").remove("show_stats");
             editor.putString(THEME_SIGNATURE_KEY, signature).commit();
         } else if (!seen.equals(signature)) {
             choices.edit().remove("columns").remove("animations").remove("advanced_effects")
-                    .remove("navigation_sounds").remove("wallpaper_choice")
+                    .remove("navigation_sounds").remove("wallpaper_choice").remove("app_library").remove("show_stats")
                     .putString(THEME_SIGNATURE_KEY, signature).commit();
         }
     }
@@ -275,6 +353,21 @@ final class Config {
         } catch (IllegalArgumentException e) {
             return fallback;
         }
+    }
+
+    /** Positive keycodes only (vendor remotes use codes in the thousands); a list with anything else in it is ignored as a whole. */
+    private static int[] intArray(JSONObject o, String key, int[] fallback) {
+        Object v = o.opt(key);
+        if (!(v instanceof JSONArray)) return fallback;
+        JSONArray a = (JSONArray) v;
+        int[] out = new int[a.length()];
+        for (int i = 0; i < a.length(); i++) {
+            Object item = a.opt(i);
+            if (!(item instanceof Number)) return fallback;
+            out[i] = ((Number) item).intValue();
+            if (out[i] < 1) return fallback;
+        }
+        return out;
     }
 
     private static List<String> stringList(JSONObject o, String key, List<String> fallback) {

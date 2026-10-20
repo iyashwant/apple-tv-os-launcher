@@ -156,6 +156,7 @@ public final class FolderMotionSmoke extends Instrumentation {
             Rect dock = new Rect();
             for (int i = 0; i < home.getChildCount(); i++) {
                 View child = home.getChildAt(i), card = child.findViewById(R.id.card);
+                if (card == null) continue;   // the App Library row has no tile
                 if (card.isFocused()) continue;
                 Rect bounds = new Rect();
                 if (!card.getGlobalVisibleRect(bounds)) continue;

@@ -44,8 +44,9 @@ import java.util.stream.Collectors;
 /**
  * App tiles. The first {@link MainActivity#COLUMNS} positions are the dock. Configured favourites, then the
  * module cards the owner chose to show (by label), then alphabetical order are defaults until customized.
+ * With app_library on, Home ends with one more full-width row: the App Library pill.
  */
-public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
+public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     interface TileListener {
         void onTileFocused(int position, View card);
@@ -60,7 +61,15 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
         /** Called for a D-pad direction key on a tile. Return true when handled (focus stays put). */
         boolean onTileVerticalKey(int position, int keyCode);
+
+        /** OK on the App Library pill after the last row. */
+        void onLibraryRequested();
+
+        void onLibraryFocused();
     }
+
+    /** View type of the App Library row; tiles are 0. */
+    static final int LIBRARY_ROW = 1;
 
     static final class Entry {
         static final int APP = 0, HOME_SETTINGS = 1, CARD = 2, FOLDER = 3;
@@ -142,6 +151,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): no overshoot, shorter fades. */
     private final boolean reducedMotion;
     private final boolean navigationSounds;
+    /** config.xml app_library: Home's last row is the App Library pill (never inside a folder). */
+    private final boolean showLibrary;
+    /** Packages with a leanback entry at the last reload(): their tiles launch with the leanback category. */
+    private Set<String> leanbackPackages = new HashSet<>();
     private final List<Entry> items = new ArrayList<>();
     private final HomeLayoutStore layoutStore;
     private HomeLayout layout = new HomeLayout();
@@ -185,6 +198,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         advancedEffects = source.advancedEffects;
         reducedMotion = source.reducedMotion;
         navigationSounds = source.navigationSounds;
+        showLibrary = false;
+        leanbackPackages = source.leanbackPackages;
         columns = FOLDER_COLUMNS;
         setHasStableIds(true);
     }
@@ -227,6 +242,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.advancedEffects = cfg.animations && cfg.advancedEffects;
         this.reducedMotion = cfg.reducedMotion;
         this.navigationSounds = cfg.navigationSounds;
+        this.showLibrary = cfg.appLibrary;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
@@ -235,18 +251,34 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     /**
      * Rebuilds the tiles. A shown module card stands in for every tile of its package (same component,
      * so focus follows it); hidden_apps wins over a card, and a card's package in dock_apps takes that slot.
+     * Apps added from the App Library join as ordinary tiles, phone apps included; one taken off Home there
+     * (or with Remove from Home) stays off until it is added again.
      */
     void reload(List<Cards.Card> cards) {
         PackageManager pm = ctx.getPackageManager();
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
-        List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
+        List<ResolveInfo> found = new ArrayList<>(pm.queryIntentActivities(probe, 0));
+        Set<String> tvPackages = new HashSet<>();
+        for (ResolveInfo ri : found) if (ri.activityInfo != null) tvPackages.add(ri.activityInfo.packageName);
+        leanbackPackages = tvPackages;
+        Set<String> added = LibraryApps.load(ctx);
+        Set<String> removed = LibraryApps.loadRemoved(ctx);
+        if (!added.isEmpty()) {
+            Set<String> listed = new HashSet<>(tvPackages);
+            for (ResolveInfo ri : pm.queryIntentActivities(
+                    new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)) {
+                if (ri.activityInfo != null && added.contains(ri.activityInfo.packageName)
+                        && listed.add(ri.activityInfo.packageName)) found.add(ri);
+            }
+        }
         Map<String, Cards.Card> cardByPkg = new HashMap<>();
         for (Cards.Card c : cards) cardByPkg.put(c.pkg, c);
         List<ResolveInfo> shown = new ArrayList<>();
         for (ResolveInfo ri : found) {
-            if (ri.activityInfo == null) continue;
+            if (ri.activityInfo == null || !ri.activityInfo.exported) continue;
             String pkg = ri.activityInfo.packageName;
-            if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg)) continue;
+            if (pkg.equals(ctx.getPackageName()) || !LibraryApps.visible(tvPackages.contains(pkg),
+                    hidden.contains(pkg), added.contains(pkg), removed.contains(pkg))) continue;
             Cards.Card card = cardByPkg.get(pkg);
             if (card != null && !card.component.equals(new ComponentName(pkg, ri.activityInfo.name))) continue;   // the card stands in for this tile
             shown.add(ri);
@@ -254,11 +286,19 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         Map<String, Drawable> previousBanners = banners;
         // Labels, icons and banners come from each app's own resources, and on a cold start nothing is cached
         // yet: load several apps at once. The tiles still appear together and complete, only sooner.
-        List<Entry> fresh = shown.parallelStream()
+        List<Entry> loaded = shown.parallelStream()
                 .map(ri -> entry(pm, ri, cardByPkg.get(ri.activityInfo.packageName), previousBanners))
                 .collect(Collectors.toCollection(ArrayList::new));
         banners = new HashMap<>();
-        for (int i = 0; i < shown.size(); i++) banners.put(artKey(shown.get(i)), fresh.get(i).banner);
+        List<Entry> fresh = new ArrayList<>();
+        // Some system apps declare two leanback entry points under one name (Sony's Timers & Clock on the
+        // BRAVIA VU31), which would show as two identical tiles: keep the first per package and label.
+        Set<String> seen = new HashSet<>();
+        for (int i = 0; i < shown.size(); i++) {
+            Entry e = loaded.get(i);
+            banners.put(artKey(shown.get(i)), e.banner);
+            if (seen.add(e.pkg + '\n' + e.label)) fresh.add(e);
+        }
         Collections.sort(fresh, (a, b) -> {
             int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
             if (fa >= 0 || fb >= 0) {
@@ -308,21 +348,42 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private Drawable loadBanner(PackageManager pm, ResolveInfo ri) {
         int id = ri.activityInfo.banner;
         if (id == 0) id = ri.activityInfo.applicationInfo.banner;
+        Drawable banner = null;
         if (id != 0) {
             try {
                 Resources resources = pm.getResourcesForApplication(ri.activityInfo.applicationInfo);
                 // Keep at least xhdpi detail rather than downsampling artwork before the focus zoom.
                 int density = Math.max(DisplayMetrics.DENSITY_XHIGH, ctx.getResources().getDisplayMetrics().densityDpi);
-                return resources.getDrawableForDensity(id, density, null);
+                banner = resources.getDrawableForDensity(id, density, null);
             } catch (PackageManager.NameNotFoundException | Resources.NotFoundException ignored) {
             }
         }
-        return ri.activityInfo.loadBanner(pm);
+        if (banner == null) banner = ri.activityInfo.loadBanner(pm);
+        // A square "banner" counts as none: the tile shows the app's icon and name instead of a blur.
+        return banner != null && isBannerShaped(banner.getIntrinsicWidth(), banner.getIntrinsicHeight()) ? banner : null;
+    }
+
+    /**
+     * Some apps declare a small square image as their banner (Rockchip's Media Center ships a 64 px one). Cropped
+     * over a 16:9 tile it is a blur. A drawable with no intrinsic size (a colour, a shape) still fills the tile.
+     */
+    static boolean isBannerShaped(int width, int height) {
+        return width <= 0 || height <= 0 || width >= height * 1.4f;
     }
 
     @NonNull
     @Override
-    public Holder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        if (viewType == LIBRARY_ROW) {
+            View row = LayoutInflater.from(parent.getContext()).inflate(R.layout.row_app_library, parent, false);
+            View button = row.findViewById(R.id.btnLibrary);
+            button.setSoundEffectsEnabled(navigationSounds);
+            button.setOnClickListener(v -> { if (listener != null) listener.onLibraryRequested(); });
+            button.setOnFocusChangeListener((v, focused) -> {
+                if (focused && listener != null) listener.onLibraryFocused();
+            });
+            return new RecyclerView.ViewHolder(row) { };
+        }
         View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_app, parent, false);
         float density = parent.getResources().getDisplayMetrics().density;
         int width = parent.getWidth() > 0 ? parent.getWidth() : parent.getMeasuredWidth();
@@ -342,10 +403,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         return new Holder(v, listener, animations, advancedEffects, reducedMotion);
     }
 
-    @Override public void onViewAttachedToWindow(@NonNull Holder holder) {
+    @Override public void onViewAttachedToWindow(@NonNull RecyclerView.ViewHolder holder) {
         super.onViewAttachedToWindow(holder);
-        if (holder.itemView.getParent() instanceof RecyclerView)
-            resizeTile(holder, (RecyclerView) holder.itemView.getParent());
+        if (holder instanceof Holder && holder.itemView.getParent() instanceof RecyclerView)
+            resizeTile((Holder) holder, (RecyclerView) holder.itemView.getParent());
     }
 
     void resizeAttachedTiles(RecyclerView parent) {
@@ -370,7 +431,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     @Override
-    public void onBindViewHolder(@NonNull Holder h, int position) {
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        if (!(holder instanceof Holder)) return;   // the App Library row has nothing to bind
+        Holder h = (Holder) holder;
         Entry e = items.get(position);
         float d = ctx.getResources().getDisplayMetrics().density;
         RecyclerView parent = (RecyclerView) h.itemView.getParent();
@@ -510,9 +573,11 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             return;
         }
         Intent i = new Intent(Intent.ACTION_MAIN)
-                .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
                 .setComponent(e.component)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+        // TV apps launch with the same leanback intent as from the stock launcher or the remote, so an app
+        // already running resumes instead of restarting; only phone apps added from the library use plain MAIN.
+        if (leanbackPackages.contains(e.pkg)) i.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         try {
             ctx.startActivity(i);
             if (advancedEffects && ctx instanceof Activity)
@@ -524,11 +589,40 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     @Override
     public int getItemCount() {
+        return items.size() + (hasLibrary() ? 1 : 0);
+    }
+
+    /** Tiles only: every position below this is an app or a folder; the App Library row may follow. */
+    int appCount() {
         return items.size();
+    }
+
+    private boolean hasLibrary() {
+        return showLibrary && activeFolder == null;
+    }
+
+    boolean isLibraryAt(int position) {
+        return hasLibrary() && position == items.size();
+    }
+
+    @Override public int getItemViewType(int position) {
+        return isLibraryAt(position) ? LIBRARY_ROW : 0;
+    }
+
+    /** Whether the package has a tile on Home, on its own or inside a folder: the App Library's "On Home". */
+    boolean containsPackage(String pkg) {
+        for (Entry entry : inventory.values()) if (pkg.equals(entry.pkg)) return true;
+        return false;
+    }
+
+    /** The app's package at this position, or null for a folder or the App Library row. */
+    String packageAt(int position) {
+        return position >= 0 && position < items.size() ? items.get(position).pkg : null;
     }
 
     @Override
     public long getItemId(int position) {
+        if (isLibraryAt(position)) return Long.MIN_VALUE;
         return ids.computeIfAbsent(items.get(position).key, key -> (long) ids.size());
     }
 
@@ -593,7 +687,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         return e.ambient;
     }
 
-    private static int vividColor(Drawable live) {
+    static int vividColor(Drawable live) {
         if (live == null) return 0xFF444444;
         // Draw a private copy: changing the bounds of the drawable an ImageView shows would blank the tile.
         Drawable d = live.getConstantState() != null ? live.getConstantState().newDrawable().mutate() : live;
@@ -604,25 +698,28 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         d.setBounds(0, 0, n, n);
         d.draw(c);
         d.setBounds(saved);
+        int[] px = new int[n * n];
+        bmp.getPixels(px, 0, n, 0, 0, n, n);
+        bmp.recycle();
         float[] hsv = new float[3];
         int best = 0xFF444444;
         float bestScore = -1f;
         long r = 0, g = 0, b = 0;
-        for (int y = 0; y < n; y++) {
-            for (int x = 0; x < n; x++) {
-                int p = bmp.getPixel(x, y);
-                r += Color.red(p);
-                g += Color.green(p);
-                b += Color.blue(p);
-                Color.colorToHSV(p, hsv);
-                float score = hsv[1] * Math.min(1f, hsv[2] * 1.4f);   // saturated and not too dark
-                if (score > bestScore) {
-                    bestScore = score;
-                    best = p;
-                }
+        for (int p : px) {
+            int pr = (p >> 16) & 0xFF, pg = (p >> 8) & 0xFF, pb = p & 0xFF;
+            r += pr;
+            g += pg;
+            b += pb;
+            int max = Math.max(pr, Math.max(pg, pb));
+            int min = Math.min(pr, Math.min(pg, pb));
+            float sat = max == 0 ? 0f : (max - min) / (float) max;
+            float val = max / 255f;
+            float score = sat * Math.min(1f, val * 1.4f);   // saturated and not too dark
+            if (score > bestScore) {
+                bestScore = score;
+                best = p;
             }
         }
-        bmp.recycle();
         if (bestScore < 0.25f) {   // nearly monochrome banner (e.g. white): use its average, lifted
             int avg = Color.rgb((int) (r / (n * n)), (int) (g / (n * n)), (int) (b / (n * n)));
             Color.colorToHSV(avg, hsv);
@@ -739,6 +836,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                                 .setInterpolator(new DecelerateInterpolator())
                                 .start();
                         name.animate().alpha(focused ? 1f : 0f).setDuration(100).start();
+                        // Same place as the full motion's slide ends: the layout's -6dp is only its starting point,
+                        // and left there the name overlaps the zoomed tile. Only on focus: snapping it back to -6dp
+                        // while it fades out would jump it up over the tile.
+                        if (focused) name.setTranslationY(density * 4f);
                     } else {
                         // Advanced effects settle with a softer overshoot: the lift already carries the motion.
                         zoom.setDuration(advancedEffects ? (focused ? 220 : 170) : (focused ? 260 : 180))
