@@ -1,8 +1,10 @@
 # Upstream integration — 22 October 2026
 
-This branch integrates upstream `origin/main` at `c1da7e10a487ee2568d2f891dd2b45751fe1ab91`.
+This branch integrates upstream `origin/main` at `622789f07fdc1b4b9914f900905a9065cee8c244`.
 The previous integration stopped at `022c57da7c4f07466141229cb5625f6ae4fd7ba0`.
-The incoming history contains 410 commits, including merge commits.
+The incoming history contains 489 commits, including merge commits. The UI integration was validated
+through `c1da7e10`; a follow-up merge brought in 79 more device-profile, documentation and benchmark
+commits, with no further launcher changes.
 
 ## UI and data kept from this fork
 
@@ -41,7 +43,8 @@ upstream repository, so publishing an independent fork does not activate that up
 - `testReleaseUnitTest`: 134 tests passed.
 - `lintRelease`: zero errors.
 - `assembleRelease`, `assembleDebug`, `assembleDebugAndroidTest`: passed.
-- Python discovery: 206 tests, passed with one skip.
+- Python discovery: 206 tests for the UI integration; 211 including the follow-up benchmark checks,
+  passed with one skip.
 - Android TV 14 emulator: all 13 smoke instrumentations passed, including 22 new integration
   checks plus folder motion, navigation, reordering, wallpaper, settings and quick-settings coverage.
 
