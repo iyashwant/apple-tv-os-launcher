@@ -87,7 +87,9 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             else rect.union(l, t, l + card.getWidth(), t + card.getHeight());
         }
         if (!found) return;
-        float side = Math.max(0f, Math.min(18 * density,
+        // The viewport has a side gutter beyond the tiles, so the glass can surround a zoomed
+        // edge tile and still leave a visible gap. Keep the rounded ends inside that viewport.
+        float side = Math.max(0f, Math.min(20 * density,
                 Math.min(rect.left, parent.getWidth() - rect.right) - density));
         rect.inset(-side, -16 * density);
         if (names) rect.bottom += 22 * density;

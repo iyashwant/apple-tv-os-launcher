@@ -120,10 +120,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private View btnLibraryTop;
     private boolean libraryFromTopBar;
     private long idleClockMs;
+    private Map<Integer, String> mappedAppKeys = Collections.emptyMap(), mappedAppScancodes = Collections.emptyMap();
     private final Runnable showIdleClock = this::openIdleClock;
     private final BroadcastReceiver timeReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
             updateClockVisibility();
+            raceCalendar = Config.load(MainActivity.this).raceCalendar;
             updateRace();
         }
     };
@@ -316,6 +318,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             updateRace();
             updateWifiLabel();
             sky.update();
+            folderBackdrop.invalidate();
             wallpaperPlayer.update();
             handler.postDelayed(this, MINUTE_MS);
         }
@@ -346,6 +349,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         rtlMenuBar = getResources().getBoolean(R.bool.rtl_menu_bar);
         navigationSounds = cfg.navigationSounds;
         idleClockMs = cfg.homeIdleClockMinutes * MINUTE_MS;
+        mappedAppKeys = RemoteKeys.parseAppKeys(cfg.appKeys);
+        mappedAppScancodes = RemoteKeys.parseAppScancodes(cfg.appKeys);
         liveTvPkg = cfg.liveTvPackage;
         liveTvAction = cfg.liveTvAction;
         inputAction = cfg.inputAction;
@@ -387,6 +392,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         wallpaperPlayer = new WallpaperPlayer(this, root, cfg);
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
+        ((HomeBackdropView) folderBackdrop).bind(wallpaperPlayer, sky);
         glass = findViewById(R.id.glass);
         if (festive) glass.setAccent(festival.accentColor());
         ambient = findViewById(R.id.ambient);
@@ -610,6 +616,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         syncFolderPresentation();
         updateClockVisibility();
         updateRace();
+        RaceCalendarStore.refreshIfNeeded(this, () -> {
+            if (isDestroyed() || isFinishing()) return;
+            raceCalendar = Config.load(this).raceCalendar;
+            updateRace();
+        });
         if (pillsShown) refreshPillsAfterNextDraw();
         else {
             updateWifiLabel();
@@ -1148,7 +1159,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void updateGridPadding() {
         int want = dp(adapter.activeFolder() != null ? 18 : 24);
-        if (grid.getPaddingTop() != want) grid.setPadding(0, want, 0, grid.getPaddingBottom());
+        int side = adapter.activeFolder() == null
+                ? getResources().getDimensionPixelSize(R.dimen.home_grid_side_padding) : 0;
+        if (grid.getPaddingTop() != want || grid.getPaddingLeft() != side || grid.getPaddingRight() != side)
+            grid.setPadding(side, want, side, grid.getPaddingBottom());
         if (!gridTransition) gridHost.setTranslationY(adapter.activeFolder() == null && !expanded
                 ? collapsedGridOffset() : 0f);
     }
@@ -1263,8 +1277,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         topBar.setAlpha(inFolder || expanded ? 0f : 1f);
         ((GridLayoutManager) grid.getLayoutManager()).setSpanCount(adapter.columns());
         FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) gridHost.getLayoutParams();
-        lp.setMarginStart(dp(inFolder ? 180 : 24));
-        lp.setMarginEnd(dp(inFolder ? 180 : 24));
+        int sideMargin = inFolder ? dp(180) : getResources().getDimensionPixelSize(R.dimen.home_grid_margin);
+        lp.setMarginStart(sideMargin);
+        lp.setMarginEnd(sideMargin);
         lp.topMargin = dp(inFolder ? 94 : 12);
         lp.bottomMargin = dp(inFolder ? 40 : 0);
         gridHost.setLayoutParams(lp);
@@ -1272,7 +1287,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         else {
             lp.height = ViewGroup.LayoutParams.MATCH_PARENT;
             gridHost.setLayoutParams(lp);
-            grid.setPadding(0, dp(24), 0, dp(40));
+            int side = getResources().getDimensionPixelSize(R.dimen.home_grid_side_padding);
+            grid.setPadding(side, dp(24), side, dp(40));
         }
         hideHero();
         hero.animate().cancel();
@@ -1882,6 +1898,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        String mapped = mappedAppScancodes.get(event.getScanCode());
+        if (mapped == null) mapped = mappedAppKeys.get(event.getKeyCode());
+        if (mapped != null && !RemoteLearning.reserved(event.getKeyCode())) {
+            if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) RemoteKeys.launch(this, mapped);
+            return true;
+        }
         if (quickSettings != null)
             return quickSettings.dispatchKeyEvent(event) || super.dispatchKeyEvent(event);
         int code = event.getKeyCode();

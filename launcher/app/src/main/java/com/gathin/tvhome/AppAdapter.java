@@ -343,10 +343,13 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         String pkg = ri.activityInfo.packageName;
         ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
         String art = artKey(ri);
-        Drawable banner = bundledBanner(appBanners.get(pkg));
-        if (banner == null) banner = previousBanners.containsKey(art) ? previousBanners.get(art) : loadBanner(pm, ri);
+        String artwork = appBanners.get(pkg);
+        boolean linkedIcon = AppArtwork.isAppIcon(artwork);
+        Drawable banner = "custom".equals(artwork) ? AppArtwork.load(ctx, pkg) : bundledBanner(artwork);
+        if (banner == null && !"icon".equals(artwork) && !linkedIcon) banner = previousBanners.containsKey(art) ? previousBanners.get(art) : loadBanner(pm, ri);
         // Spotify's custom glyph still needs its icon even if the app supplies a banner.
-        Drawable icon = banner == null || "com.spotify.tv.android".equals(pkg) ? ri.loadIcon(pm) : null;
+        Drawable icon = linkedIcon ? AppArtwork.otherAppIcon(ctx, artwork) : null;
+        if (icon == null && (banner == null || "com.spotify.tv.android".equals(pkg) && !appBanners.containsKey(pkg))) icon = ri.loadIcon(pm);
         if (card != null) return new Entry(Entry.CARD, card.label, component, banner, icon, card.caption, card.accent);
         // Same cleaner as the card prompt: an app label with a bidi override or line separator must not
         // redraw the tile name as something else (#117).
@@ -455,7 +458,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (parent != null) {
             resizeTile(h, parent);
         }
-        boolean glyphTile = "com.spotify.tv.android".equals(e.pkg) && e.icon != null;
+        boolean glyphTile = "com.spotify.tv.android".equals(e.pkg) && e.icon != null && !appBanners.containsKey(e.pkg);
         int backdrop = glyphTile ? Holder.BACKDROP_GLYPH : isFolder(position) ? Holder.BACKDROP_GLASS
                 : e.banner != null && e.banner.getOpacity() == PixelFormat.OPAQUE ? Holder.BACKDROP_NONE : Holder.BACKDROP_TILE;
         if (h.backdrop != backdrop) {
@@ -533,6 +536,19 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         List<String> result = new ArrayList<>();
         for (Entry entry : items) result.add(entry.key);
         return result;
+    }
+
+    /** The settings preview reads the same layout and artwork as Home without saving any changes. */
+    List<Entry> previewEntries() { return new ArrayList<>(items); }
+
+    Entry previewApp(String pkg) {
+        for (Entry entry : inventory.values()) if (pkg.equals(entry.pkg)) return entry;
+        for (String category : new String[]{Intent.CATEGORY_LEANBACK_LAUNCHER, Intent.CATEGORY_LAUNCHER})
+            for (ResolveInfo ri : ctx.getPackageManager().queryIntentActivities(
+                    new Intent(Intent.ACTION_MAIN).addCategory(category).setPackage(pkg), 0))
+                if (ri.activityInfo != null && ri.activityInfo.exported)
+                    return entry(ctx.getPackageManager(), ri, null, Collections.emptyMap());
+        return null;
     }
 
     void applyOrder(List<String> order) {

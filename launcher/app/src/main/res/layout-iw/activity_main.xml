@@ -264,8 +264,8 @@
         android:id="@+id/gridHost"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginStart="24dp"
-        android:layout_marginEnd="24dp"
+        android:layout_marginStart="@dimen/home_grid_margin"
+        android:layout_marginEnd="@dimen/home_grid_margin"
         android:layout_marginTop="12dp"
         android:clipChildren="false"
         android:clipToPadding="false">
@@ -275,6 +275,8 @@
             android:layout_height="match_parent"
             android:paddingTop="28dp"
             android:paddingBottom="40dp"
+            android:paddingLeft="@dimen/home_grid_side_padding"
+            android:paddingRight="@dimen/home_grid_side_padding"
             android:clipToPadding="false"
             android:clipChildren="false"
             android:overScrollMode="never"
@@ -282,11 +284,10 @@
             android:descendantFocusability="afterDescendants" />
     </FrameLayout>
 
-    <View
+    <com.gathin.tvhome.HomeBackdropView
         android:id="@+id/folderBackdrop"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#FF000000"
         android:alpha="0"
         android:visibility="gone"
         android:importantForAccessibility="no"

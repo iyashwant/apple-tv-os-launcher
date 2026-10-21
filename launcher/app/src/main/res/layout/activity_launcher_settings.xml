@@ -39,45 +39,13 @@
 
         <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" />
 
-        <FrameLayout
+        <com.gathin.tvhome.HomePreviewView
+            android:id="@+id/settingsPreviewImage"
             android:layout_width="match_parent"
             android:layout_height="148dp"
             android:background="@drawable/settings_preview_bg"
-            android:clipToOutline="true">
-
-            <ImageView
-                android:id="@+id/settingsPreviewImage"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:importantForAccessibility="no" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="14dp"
-                android:text="@string/settings_preview_home"
-                android:textColor="#F2FFFFFF"
-                android:textSize="15sp"
-                android:fontFamily="sans-serif-medium"
-                android:importantForAccessibility="no" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_gravity="bottom"
-                android:layout_margin="12dp"
-                android:orientation="horizontal"
-                android:padding="6dp"
-                android:background="@drawable/settings_group_bg"
-                android:importantForAccessibility="noHideDescendants">
-                <ImageView style="@style/SettingsPreviewTile" android:src="@drawable/ic_quick_apps" />
-                <ImageView style="@style/SettingsPreviewTile" android:src="@drawable/ic_livetv" />
-                <ImageView style="@style/SettingsPreviewTile" android:src="@drawable/ic_quick_picture" />
-                <ImageView style="@style/SettingsPreviewTile" android:src="@drawable/ic_quick_screensaver" />
-            </LinearLayout>
-        </FrameLayout>
+            android:clipToOutline="true"
+            android:importantForAccessibility="no" />
 
         <TextView
             android:id="@+id/settingsPreviewCaption"
@@ -168,6 +136,8 @@
                 <com.gathin.tvhome.SettingsRowView android:id="@+id/wallpaperChoice" style="@style/SettingsRow" android:text="@string/settings_wallpaper" />
                 <View style="@style/SettingsDivider" />
                 <com.gathin.tvhome.SettingsRowView android:id="@+id/rowsChoice" style="@style/SettingsRow" android:text="@string/rows_below_dock_label" />
+                <View style="@style/SettingsDivider" />
+                <com.gathin.tvhome.SettingsRowView android:id="@+id/skyChoice" style="@style/SettingsRow" android:text="@string/feature_sky_races" />
             </LinearLayout>
 
             <TextView style="@style/SettingsSection" android:layout_marginTop="22dp" android:text="@string/settings_experience" />
@@ -181,10 +151,16 @@
                 <com.gathin.tvhome.SettingsRowView android:id="@+id/libraryChoice" style="@style/SettingsRow" android:text="@string/app_library" />
                 <View style="@style/SettingsDivider" />
                 <com.gathin.tvhome.SettingsRowView android:id="@+id/statsChoice" style="@style/SettingsRow" android:text="@string/settings_stats" />
+                <View style="@style/SettingsDivider" />
+                <com.gathin.tvhome.SettingsRowView android:id="@+id/idleClockChoice" style="@style/SettingsRow" android:text="@string/feature_idle_clock" />
             </LinearLayout>
 
             <TextView style="@style/SettingsSection" android:layout_marginTop="22dp" android:text="@string/settings_system" />
             <LinearLayout style="@style/SettingsGroup">
+                <com.gathin.tvhome.SettingsRowView android:id="@+id/appCustomizationChoice" style="@style/SettingsRow" android:text="@string/feature_apps" />
+                <View style="@style/SettingsDivider" />
+                <com.gathin.tvhome.SettingsRowView android:id="@+id/remoteButtonsChoice" style="@style/SettingsRow" android:text="@string/feature_remote" />
+                <View style="@style/SettingsDivider" />
                 <com.gathin.tvhome.SettingsRowView android:id="@+id/followThemeChoice" style="@style/SettingsRow" android:text="@string/settings_follow_theme" />
                 <View style="@style/SettingsDivider" />
                 <com.gathin.tvhome.SettingsRowView android:id="@+id/defaultHomeChoice" style="@style/SettingsRow" android:text="@string/home_settings" />

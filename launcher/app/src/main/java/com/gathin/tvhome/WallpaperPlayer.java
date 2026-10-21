@@ -6,6 +6,7 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.BitmapRegionDecoder;
+import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -54,11 +55,15 @@ final class WallpaperPlayer {
     private boolean closed;
     private boolean loading;
     private String displayed = "";
+    private final int backgroundColor, dimColor;
+    private View mirror;
 
     WallpaperPlayer(Context context, FrameLayout root, Config config) {
         this.root = root;
         resources = context.getResources();
         aurora = Config.WALLPAPER_AURORA.equals(config.wallpaperChoice);
+        backgroundColor = config.backgroundColor;
+        dimColor = !aurora && config.wallpaperEnabled ? (config.wallpaperDim * 255 / 100) << 24 : 0;
         files = aurora ? new ArrayList<>() : new ArrayList<>(config.wallpapers);
         interval = config.wallpaperRotationMinutes * 60_000L;
         order = config.wallpaperOrder;
@@ -180,9 +185,21 @@ final class WallpaperPlayer {
     private void show(Bitmap bitmap) {
         // The previous picture is left to the garbage collector: the render thread may still draw it this frame.
         image.setImageBitmap(bitmap);
+        if (mirror != null) mirror.invalidate();
         // CENTER_CROP covers the whole screen, so the colour under an opaque picture would be one more
         // full-screen pass every frame. A picture with transparency keeps the colour behind it.
         if (!bitmap.hasAlpha()) root.setBackground(null);
+    }
+
+    void setMirror(View view) { mirror = view; }
+
+    /** Draw the same image matrix and shade, without another decode, bitmap or Home tile snapshot. */
+    void drawBackground(Canvas canvas) {
+        canvas.drawColor(backgroundColor);
+        if (image.getParent() == root) {
+            image.draw(canvas);
+            if (dimColor != 0) canvas.drawColor(dimColor);
+        }
     }
 
     /** A null file selects the bundled Aurora picture. */

@@ -5,8 +5,6 @@ import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -14,7 +12,6 @@ import android.provider.Settings;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -29,11 +26,9 @@ public final class LauncherSettingsActivity extends Activity {
     private SettingsRowView wallpaperChoice;
     private SettingsRowView rowsChoice;
     private int rowsBelowDock;
-    private AlertDialog wallpaperPicker;
     private SettingsRowView libraryChoice;
     private SettingsRowView statsChoice;
     private SettingsRowView followThemeChoice;
-    private String previewChoice;
     private int columns;
     private boolean animations;
     private boolean advancedEffects;
@@ -129,24 +124,18 @@ public final class LauncherSettingsActivity extends Activity {
             refresh();
         });
         wallpaperChoice = findViewById(R.id.wallpaperChoice);
-        wallpaperChoice.setOnClickListener(v -> {
-            if (!wallpaperImages().isEmpty()) {
-                showWallpaperPicker();
-                return;
-            }
-            wallpaper = Config.WALLPAPER_THEME.equals(wallpaper) ? Config.WALLPAPER_AURORA
-                    : Config.WALLPAPER_AURORA.equals(wallpaper) ? Config.WALLPAPER_OFF : Config.WALLPAPER_THEME;
-            if (Config.WALLPAPER_THEME.equals(wallpaper)) choices.edit().remove("wallpaper_choice").apply();
-            else choices.edit().putString("wallpaper_choice", wallpaper).apply();
-            setResult(RESULT_OK);
-            refresh();
-        });
+        wallpaperChoice.setOnClickListener(v -> openFeature(FeatureSettingsActivity.WALLPAPER));
+        featureRow(R.id.skyChoice, FeatureSettingsActivity.SKY, R.drawable.ic_quick_picture, 0xFF0A84FF);
+        featureRow(R.id.idleClockChoice, FeatureSettingsActivity.CLOCK, R.drawable.ic_quick_screensaver, 0xFFBF5AF2);
+        featureRow(R.id.appCustomizationChoice, FeatureSettingsActivity.APPS, R.drawable.ic_apps, 0xFF5E5CE6);
+        featureRow(R.id.remoteButtonsChoice, FeatureSettingsActivity.REMOTE, R.drawable.ic_quick_apps, 0xFF30D158);
         followThemeChoice = findViewById(R.id.followThemeChoice);
         followThemeChoice.setOnClickListener(v -> {
             if (!hasOnTvChoices()) return;
             choices.edit().remove("columns").remove("animations").remove("advanced_effects")
                     .remove("navigation_sounds").remove("wallpaper_choice").remove("app_library")
                     .remove("show_stats").remove(Config.ROWS_BELOW_DOCK_KEY).commit();
+            FeaturePreferences.clearAppearance(this);
             Config current = Config.load(this);
             columns = current.columns;
             rowsBelowDock = current.rowsBelowDock;
@@ -181,7 +170,8 @@ public final class LauncherSettingsActivity extends Activity {
         // White focus and a raised shadow stay within the row's width. No scaling into a clip edge.
         for (int id : new int[]{R.id.columns4, R.id.columns5, R.id.columns6, R.id.columns7, R.id.animationsChoice,
                 R.id.advancedChoice, R.id.soundsChoice, R.id.libraryChoice, R.id.statsChoice,
-                R.id.wallpaperChoice, R.id.rowsChoice, R.id.followThemeChoice,
+                R.id.wallpaperChoice, R.id.rowsChoice, R.id.skyChoice, R.id.idleClockChoice,
+                R.id.appCustomizationChoice, R.id.remoteButtonsChoice, R.id.followThemeChoice,
                 R.id.defaultHomeChoice, R.id.tvSettingsChoice}) {
             findViewById(id).setOnFocusChangeListener((v, focused) -> {
                 v.animate().translationZ(focused ? 6 * getResources().getDisplayMetrics().density : 0)
@@ -241,6 +231,8 @@ public final class LauncherSettingsActivity extends Activity {
         String wallpaperLabel = Config.WALLPAPER_AURORA.equals(wallpaper) ? getString(R.string.wallpaper_aurora)
                 : Config.WALLPAPER_OFF.equals(wallpaper) ? getString(R.string.off)
                 : Config.WALLPAPER_THEME.equals(wallpaper) ? getString(R.string.wallpaper_theme) : wallpaper;
+        if (FeaturePreferences.SCENES.equals(wallpaper)) wallpaperLabel = getString(R.string.feature_scenes);
+        else if (wallpaper.startsWith(FeaturePreferences.SCENE_PREFIX)) wallpaperLabel = SceneFiles.label(wallpaper.substring(FeaturePreferences.SCENE_PREFIX.length()));
         wallpaperChoice.setValue(wallpaperLabel, true);
         rowsChoice.setValue(String.valueOf(rowsBelowDock), true);
         wallpaperChoice.setNextFocusUpId(columnChoices[Math.max(0, Math.min(columns - 4, 3))].getId());
@@ -257,6 +249,14 @@ public final class LauncherSettingsActivity extends Activity {
             title = R.string.settings_wallpaper; hint = R.string.wallpaper_hint;
         } else if (id == R.id.rowsChoice) {
             title = R.string.rows_below_dock_label; hint = R.string.settings_rows_hint;
+        } else if (id == R.id.skyChoice) {
+            title = R.string.feature_sky_races; hint = R.string.feature_sky_help;
+        } else if (id == R.id.idleClockChoice) {
+            title = R.string.feature_idle_clock; hint = R.string.feature_idle_help;
+        } else if (id == R.id.appCustomizationChoice) {
+            title = R.string.feature_apps; hint = R.string.feature_apps_help;
+        } else if (id == R.id.remoteButtonsChoice) {
+            title = R.string.feature_remote; hint = R.string.feature_remote_help;
         } else if (id == R.id.animationsChoice) {
             title = R.string.settings_animations; hint = R.string.settings_animations_hint;
         } else if (id == R.id.advancedChoice) {
@@ -281,35 +281,12 @@ public final class LauncherSettingsActivity extends Activity {
     }
 
     private void updatePreview() {
-        if (wallpaper.equals(previewChoice)) return;
-        previewChoice = wallpaper;
-        ImageView image = findViewById(R.id.settingsPreviewImage);
-        image.setImageDrawable(null);
-        try {
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            Bitmap bitmap = null;
-            if (Config.WALLPAPER_AURORA.equals(wallpaper)) {
-                options.inSampleSize = 4;
-                try (java.io.InputStream in = getResources().openRawResource(R.raw.aurora_wallpaper)) {
-                    bitmap = BitmapFactory.decodeStream(in, null, options);
-                }
-            } else if (!Config.WALLPAPER_OFF.equals(wallpaper)) {
-                // A theme's rotating collection previews the picture Home shows now.
-                java.io.File file = WallpaperPlayer.current(this, Config.load(this));
-                if (file != null) {
-                    options.inJustDecodeBounds = true;
-                    BitmapFactory.decodeFile(file.getPath(), options);
-                    options.inSampleSize = 1;
-                    while (Math.max(options.outWidth, options.outHeight) / options.inSampleSize > 512)
-                        options.inSampleSize *= 2;
-                    options.inJustDecodeBounds = false;
-                    bitmap = BitmapFactory.decodeFile(file.getPath(), options);
-                }
-            }
-            image.setImageBitmap(bitmap);
-        } catch (Exception | OutOfMemoryError ignored) {
-            // Preview failures keep the plain mini Home; they never interrupt the settings controls.
-        }
+        ((HomePreviewView) findViewById(R.id.settingsPreviewImage)).refresh(Config.load(this), null);
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        updatePreview();
     }
 
     private void setSounds(View view) {
@@ -324,7 +301,7 @@ public final class LauncherSettingsActivity extends Activity {
         return choices.contains("columns") || choices.contains(Config.ROWS_BELOW_DOCK_KEY) || choices.contains("animations")
                 || choices.contains("advanced_effects") || choices.contains("navigation_sounds")
                 || choices.contains("wallpaper_choice") || choices.contains("app_library")
-                || choices.contains("show_stats");
+                || choices.contains("show_stats") || FeaturePreferences.hasAppearanceChoices(this);
     }
 
     private void open(Intent intent) {
@@ -335,49 +312,24 @@ public final class LauncherSettingsActivity extends Activity {
         }
     }
 
-    private java.util.List<java.io.File> wallpaperImages() {
-        java.io.File dir = Config.dir(this);
-        java.util.List<java.io.File> images = new java.util.ArrayList<>(WallpaperRotation.images(
-                dir == null ? null : new java.io.File(dir, "wallpapers")));
-        java.io.File single = dir == null ? null : new java.io.File(dir, Config.WALLPAPER_NAME);
-        if (single != null && single.isFile() && single.length() > 0) images.add(0, single);
-        return images;
+    private void openFeature(String page) {
+        startActivityForResult(FeatureSettingsActivity.intent(this, page), 43);
     }
 
-    private void showWallpaperPicker() {
-        if (wallpaperPicker != null) return;
-        java.util.List<java.io.File> images = wallpaperImages();
-        String[] labels = new String[images.size() + 3];
-        String[] values = new String[labels.length];
-        labels[0] = getString(R.string.wallpaper_theme_default); values[0] = Config.WALLPAPER_THEME;
-        labels[1] = getString(R.string.wallpaper_aurora); values[1] = Config.WALLPAPER_AURORA;
-        labels[2] = getString(R.string.off); values[2] = Config.WALLPAPER_OFF;
-        for (int i = 0; i < images.size(); i++) {
-            labels[i + 3] = images.get(i).getName(); values[i + 3] = images.get(i).getName();
+    private void featureRow(int id, String page, int icon, int color) {
+        SettingsRowView row = findViewById(id); row.setIcon(icon, color); row.setValue("", true);
+        row.setOnClickListener(v -> openFeature(page));
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 43 && resultCode == RESULT_OK) {
+            Config current = Config.load(this);
+            columns = current.columns; rowsBelowDock = current.rowsBelowDock;
+            animations = current.animations; advancedEffects = current.animations && current.advancedEffects;
+            navigationSounds = current.navigationSounds; appLibrary = current.appLibrary;
+            showStats = current.showStats; wallpaper = current.wallpaperChoice;
+            setResult(RESULT_OK); refresh();
         }
-        int checked = java.util.Arrays.asList(values).indexOf(wallpaper);
-        android.widget.ArrayAdapter<String> rows = new android.widget.ArrayAdapter<String>(this,
-                android.R.layout.simple_list_item_single_choice, labels) {
-            @Override public View getView(int position, View recycled, ViewGroup parent) {
-                TextView row = (TextView) super.getView(position, recycled, parent);
-                row.setTextColor(0xFFFFFFFF);
-                row.setTextSize(16);
-                row.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-                row.setSoundEffectsEnabled(navigationSounds);
-                return row;
-            }
-        };
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(R.string.wallpaper_label)
-                .setSingleChoiceItems(rows, checked, (d, which) -> {
-                    wallpaper = values[which];
-                    if (Config.WALLPAPER_THEME.equals(wallpaper)) choices.edit().remove(Config.WALLPAPER_CHOICE_KEY).apply();
-                    else choices.edit().putString(Config.WALLPAPER_CHOICE_KEY, wallpaper).apply();
-                    setResult(RESULT_OK);
-                    refresh();
-                    d.dismiss();
-                }).setNegativeButton(android.R.string.cancel, null).show();
-        wallpaperPicker = dialog;
-        dialog.setOnDismissListener(d -> wallpaperPicker = null);
-        glass(dialog);
     }
 }

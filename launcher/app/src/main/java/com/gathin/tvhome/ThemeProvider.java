@@ -21,6 +21,28 @@ import java.io.FileNotFoundException;
  */
 public class ThemeProvider extends ContentProvider {
 
+    /** A bounded setup/status API for the same privileged ADB caller that can push themes. */
+    @Override public android.os.Bundle call(String method, String argument, android.os.Bundle extras) {
+        if (android.os.Binder.getCallingUid() != android.os.Process.myUid())
+            getContext().enforceCallingPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS, "Privileged launcher setup only");
+        if (!"feature-settings".equals(method) && !"feature-status".equals(method)) return super.call(method, argument, extras);
+        android.os.Bundle result = new android.os.Bundle();
+        try {
+            if (method.equals("feature-settings")) {
+                if (argument == null || argument.length() > 4096) throw new IllegalArgumentException("Invalid settings");
+                FeaturePreferences.importSettings(getContext(), new org.json.JSONObject(argument));
+            }
+            Config config = Config.load(getContext());
+            result.putString("status", new org.json.JSONObject()
+                    .put("preferences", new org.json.JSONObject(FeaturePreferences.prefs(getContext()).getAll()))
+                    .put("wallpaper_choice", config.wallpaperChoice).put("wallpaper_count", config.wallpapers.size())
+                    .put("wallpaper_rotation_minutes", config.wallpaperRotationMinutes).put("wallpaper_order", config.wallpaperOrder)
+                    .put("wallpaper_true_color", config.wallpaperTrueColor).put("race_count", config.raceCalendar.size())
+                    .put("home_idle_clock_minutes", config.homeIdleClockMinutes).toString());
+        } catch (Exception failure) { result.putString("error", failure.getMessage()); }
+        return result;
+    }
+
     private File file(Uri uri) throws FileNotFoundException {
         String path = ThemeFiles.path(uri.getPathSegments());
         File dir = Config.dir(getContext());

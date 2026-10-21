@@ -6,12 +6,15 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.text.TextPaint;
+import android.text.TextUtils;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.TextView;
 
 /** One remote-focus target with an iOS-style icon and a trailing value or switch. */
 public final class SettingsRowView extends TextView {
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final TextPaint valuePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final float density;
     private Drawable icon;
     private int iconColor;
@@ -33,6 +36,7 @@ public final class SettingsRowView extends TextView {
         toggle = true;
         checked = enabled;
         setContentDescription(getText() + ", " + getContext().getString(enabled ? R.string.on : R.string.off));
+        updateValuePadding();
         invalidate();
     }
 
@@ -41,6 +45,7 @@ public final class SettingsRowView extends TextView {
         value = text;
         chevron = disclosure;
         setContentDescription(getText() + (text.isEmpty() ? "" : ", " + text));
+        updateValuePadding();
         invalidate();
     }
 
@@ -68,9 +73,10 @@ public final class SettingsRowView extends TextView {
             paint.setColor(isFocused() ? 0xFF666970 : 0xFFB7BBC6);
             paint.setTextSize(getTextSize() * .94f);
             paint.setTypeface(getTypeface());
-            paint.setTextAlign(rtl ? Paint.Align.LEFT : Paint.Align.RIGHT);
+            valuePaint.set(paint);
+            valuePaint.setTextAlign(rtl ? Paint.Align.LEFT : Paint.Align.RIGHT);
             float textEnd = end + (chevron ? dp(rtl ? 18 : -18) : 0);
-            canvas.drawText(value, textEnd, cy - (paint.ascent() + paint.descent()) / 2, paint);
+            canvas.drawText(shortValue(), textEnd, cy - (valuePaint.ascent() + valuePaint.descent()) / 2, valuePaint);
             if (chevron) {
                 float x = end + dp(rtl ? 2 : -2);
                 Path path = new Path();
@@ -85,6 +91,19 @@ public final class SettingsRowView extends TextView {
                 paint.setStyle(Paint.Style.FILL);
             }
         }
+    }
+
+    private String shortValue() {
+        valuePaint.setTextSize(getTextSize() * .94f); valuePaint.setTypeface(getTypeface());
+        float available = Math.min(dp(180), Math.max(0, (getWidth() - getPaddingStart() - dp(110)) / 2f));
+        return TextUtils.ellipsize(value, valuePaint, available, TextUtils.TruncateAt.END).toString();
+    }
+    private void updateValuePadding() {
+        int end = Math.round(toggle ? dp(112) : Math.max(dp(112), valuePaint.measureText(shortValue()) + dp(42)));
+        if (getPaddingEnd() != end) setPaddingRelative(getPaddingStart(), getPaddingTop(), end, getPaddingBottom());
+    }
+    @Override protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh); updateValuePadding();
     }
 
     @Override public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {

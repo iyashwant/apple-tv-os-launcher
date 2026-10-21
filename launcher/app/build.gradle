@@ -2,6 +2,12 @@ plugins {
     id 'com.android.application'
 }
 
+def sceneAssets = layout.buildDirectory.dir('generated/sceneAssets')
+tasks.register('prepareSceneAssets', Sync) {
+    from(rootProject.file('../themes/scenes/wallpapers')) { into 'scenes' }
+    into sceneAssets
+}
+
 android {
     namespace 'com.gathin.tvhome'
     compileSdk 34
@@ -10,8 +16,8 @@ android {
         applicationId providers.gradleProperty('launcherApplicationId').getOrElse('com.gathin.tvhome')
         minSdk 26
         targetSdk 34
-        versionCode 31
-        versionName '3.28'
+        versionCode 35
+        versionName '3.32'
         testInstrumentationRunner project.findProperty('launcherTestRunner') ?: 'com.gathin.tvhome.LauncherSmoke'
     }
 
@@ -34,11 +40,15 @@ android {
         }
     }
 
+    sourceSets.main.assets.srcDir(sceneAssets)
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
 }
+
+tasks.named('preBuild').configure { dependsOn tasks.named('prepareSceneAssets') }
 
 dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.3.2'

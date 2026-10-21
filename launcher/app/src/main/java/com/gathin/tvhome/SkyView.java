@@ -44,6 +44,8 @@ public class SkyView extends View {
     private int lastMinute = -1;
     private Bitmap texture;
     private BitmapDrawable drawable;
+    private final Paint backdropPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    private final android.graphics.Rect backdropBounds = new android.graphics.Rect();
 
     public SkyView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -63,6 +65,14 @@ public class SkyView extends View {
         render(false);
     }
 
+    /** Shares the small sky texture with folders and previews; no full-screen alpha layer is needed. */
+    void drawBackdrop(Canvas canvas, int width, int height) {
+        if (intensity == 0 || texture == null) return;
+        backdropPaint.setAlpha(Math.round(intensity * 2.55f));
+        backdropBounds.set(0, 0, width, height);
+        canvas.drawBitmap(texture, null, backdropBounds, backdropPaint);
+    }
+
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
@@ -72,11 +82,14 @@ public class SkyView extends View {
     /** Today's sunrise and sunset at the configured place, or null without one (fixed reference day). */
     @Nullable
     private int[] sunTimes() {
-        String lat = getContext().getString(R.string.latitude);
-        String lon = getContext().getString(R.string.longitude);
+        android.content.SharedPreferences choices = FeaturePreferences.prefs(getContext());
+        String lat = choices.getString("latitude", getContext().getString(R.string.latitude));
+        String lon = choices.getString("longitude", getContext().getString(R.string.longitude));
         if (lat.isEmpty() || lon.isEmpty()) return null;
         try {
-            return Sun.riseAndSet(LocalDate.now(), Double.parseDouble(lat), Double.parseDouble(lon),
+            double latitude = Double.parseDouble(lat), longitude = Double.parseDouble(lon);
+            if (!Double.isFinite(latitude) || !Double.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null;
+            return Sun.riseAndSet(LocalDate.now(), latitude, longitude,
                     ZoneId.systemDefault());
         } catch (NumberFormatException e) {
             return null;

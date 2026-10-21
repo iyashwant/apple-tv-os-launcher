@@ -62,7 +62,7 @@ final class FolderTransition {
     private void apply(float value) {
         progress = value;
         backdrop.setAlpha(value);
-        // The opaque backdrop already crossfades Home out. Fading the Home ViewGroup too
+        // The opaque copy of Home's live background crossfades its tiles out. Fading the Home ViewGroup too
         // creates a bounded alpha layer: Android cuts off the dock, tile shadows and
         // rounded edges drawn outside that group's bounds, despite clipChildren=false.
         // Keep its native rendering intact underneath the incoming backdrop.

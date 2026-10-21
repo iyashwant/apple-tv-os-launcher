@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Give the glass dock room outside the tiles without moving or resizing the app grid.
+         Together these retain the previous 24dp inset of the tile content. -->
+    <dimen name="home_grid_margin">8dp</dimen>
+    <dimen name="home_grid_side_padding">16dp</dimen>
+</resources>

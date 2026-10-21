@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/settings_backdrop" android:orientation="horizontal"
+    android:paddingStart="48dp" android:paddingEnd="40dp" android:paddingTop="36dp" android:paddingBottom="32dp">
+    <LinearLayout android:layout_width="264dp" android:layout_height="match_parent"
+        android:layout_marginEnd="40dp" android:orientation="vertical">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="CleanYourTV" android:textColor="#99FFFFFF" android:textSize="12sp" android:fontFamily="sans-serif-medium" />
+        <TextView android:id="@+id/featureTitle" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:textSize="36sp" android:fontFamily="sans-serif-medium"
+            android:textColor="#FFFFFFFF" android:letterSpacing="-0.035" />
+        <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" />
+        <com.gathin.tvhome.HomePreviewView android:id="@+id/featurePreview" android:layout_width="match_parent" android:layout_height="148dp"
+            android:background="@drawable/settings_preview_bg" android:clipToOutline="true"
+            android:importantForAccessibility="no" />
+        <TextView android:id="@+id/featureSummary" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" android:textSize="15sp" android:textColor="#B3FFFFFF"
+            android:fontFamily="sans-serif" android:lineSpacingExtra="4dp" />
+        <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/feature_back" android:textSize="13sp" android:textColor="#80FFFFFF" />
+    </LinearLayout>
+    <ScrollView android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
+        android:padding="16dp" android:scrollbars="none" android:clipToPadding="false">
+        <LinearLayout android:id="@+id/featureRows" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:clipChildren="false" android:clipToPadding="false" />
+    </ScrollView>
+</LinearLayout>

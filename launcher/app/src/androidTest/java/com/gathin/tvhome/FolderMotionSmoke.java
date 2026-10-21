@@ -81,10 +81,12 @@ public final class FolderMotionSmoke extends Instrumentation {
             }
             Bitmap homeFrame = getUiAutomation().takeScreenshot();
             List<Point> corners = cornerSamples();
-            freeze("opening", true, homeFrame, corners);
-            checkBlackBackdrop();
-            freeze("closing", false, homeFrame, corners);
-            homeFrame.recycle();
+            Bitmap background = Bitmap.createBitmap(homeFrame.getWidth(), homeFrame.getHeight(), Bitmap.Config.ARGB_8888);
+            runOnMainSync(() -> activity.findViewById(R.id.folderBackdrop).draw(new android.graphics.Canvas(background)));
+            freeze("opening", true, homeFrame, background, corners);
+            checkHomeBackdrop(background);
+            freeze("closing", false, homeFrame, background, corners);
+            homeFrame.recycle(); background.recycle();
             runOnMainSync(() -> activity.getCurrentFocus().performClick());
             SystemClock.sleep(70);
             runOnMainSync(() -> dispatch(KeyEvent.KEYCODE_BACK));
@@ -198,7 +200,7 @@ public final class FolderMotionSmoke extends Instrumentation {
         return points;
     }
 
-    private void freeze(String name, boolean opening, Bitmap baseline, List<Point> corners) throws Exception {
+    private void freeze(String name, boolean opening, Bitmap baseline, Bitmap background, List<Point> corners) throws Exception {
         runOnMainSync(() -> {
             if (opening) activity.getCurrentFocus().performClick();
             else dispatch(KeyEvent.KEYCODE_BACK);
@@ -226,7 +228,8 @@ public final class FolderMotionSmoke extends Instrumentation {
             for (Point p : corners) {
                 int before = baseline.getPixel(p.x, p.y), actual = shot.getPixel(p.x, p.y);
                 for (int shift : new int[]{0, 8, 16}) {
-                    int expected = Math.round(((before >> shift) & 255) * (1f - alpha[0]));
+                    int expected = Math.round(((before >> shift) & 255) * (1f - alpha[0])
+                            + ((background.getPixel(p.x, p.y) >> shift) & 255) * alpha[0]);
                     int error = Math.abs(((actual >> shift) & 255) - expected);
                     if (error > maxError) { maxError = error; worst = p; }
                 }
@@ -234,19 +237,20 @@ public final class FolderMotionSmoke extends Instrumentation {
             shot.recycle();
             measurements.add(name + " " + fraction + ": " + corners.size()
                     + " corner samples, maximum colour error=" + maxError + " at " + worst);
-            check(maxError <= 12, name + " preserves Home's rounded edges through the black fade");
+            check(maxError <= 12, name + " preserves Home's rounded edges through the wallpaper fade");
         }
         runOnMainSync(() -> value[0].resume());
         settle();
     }
 
-    private void checkBlackBackdrop() throws Exception {
+    private void checkHomeBackdrop(Bitmap background) throws Exception {
         Bitmap shot = getUiAutomation().takeScreenshot();
-        saveShot(shot, "folder-open-black");
-        check(shot.getPixel(shot.getWidth() / 4, 8) == Color.BLACK
-                && shot.getPixel(shot.getWidth() * 3 / 4, 8) == Color.BLACK
-                && shot.getPixel(8, shot.getHeight() / 2) == Color.BLACK,
-                "The open folder has a solid black backdrop");
+        saveShot(shot, "folder-open-wallpaper");
+        for (Point point : new Point[]{new Point(shot.getWidth() / 4, 8), new Point(shot.getWidth() * 3 / 4, 8), new Point(8, shot.getHeight() / 2)}) {
+            int actual = shot.getPixel(point.x, point.y), expected = background.getPixel(point.x, point.y);
+            for (int shift : new int[]{0, 8, 16}) check(Math.abs(((actual >> shift) & 255) - ((expected >> shift) & 255)) <= 3,
+                    "The open folder uses Home's current wallpaper and sky");
+        }
         shot.recycle();
     }
 

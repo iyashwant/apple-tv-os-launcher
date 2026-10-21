@@ -28,10 +28,8 @@ public class InputKeyService extends AccessibilityService {
     protected void onServiceConnected() {
         super.onServiceConnected();
         // From config.xml or a theme's config.json; theme.sh rebinds this service after a push.
-        Config config = Config.load(this);
-        inputKeycodes = config.inputKeycodes;
-        appKeys = RemoteKeys.parseAppKeys(config.appKeys);
-        appScancodes = RemoteKeys.parseAppScancodes(config.appKeys);
+        reloadMappings();
+        FeaturePreferences.prefs(this).registerOnSharedPreferenceChangeListener(mappingChanges);
     }
 
     private boolean isInputKey(int keyCode) {
@@ -42,6 +40,7 @@ public class InputKeyService extends AccessibilityService {
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
+        if (RemoteLearning.handle(event)) return true;
         // A scancode entry is more specific than any keycode, so it goes first.
         String scanApp = appScancodes.get(event.getScanCode());
         if (scanApp != null) {
@@ -69,5 +68,19 @@ public class InputKeyService extends AccessibilityService {
 
     @Override
     public void onInterrupt() {
+    }
+
+    private final android.content.SharedPreferences.OnSharedPreferenceChangeListener mappingChanges = (prefs, key) -> {
+        if ("remote_mappings".equals(key)) reloadMappings();
+    };
+    private void reloadMappings() {
+        Config config = Config.load(this);
+        inputKeycodes = config.inputKeycodes;
+        appKeys = RemoteKeys.parseAppKeys(config.appKeys);
+        appScancodes = RemoteKeys.parseAppScancodes(config.appKeys);
+    }
+    @Override public void onDestroy() {
+        FeaturePreferences.prefs(this).unregisterOnSharedPreferenceChangeListener(mappingChanges);
+        super.onDestroy();
     }
 }

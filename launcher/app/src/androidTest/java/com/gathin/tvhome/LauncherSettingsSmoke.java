@@ -63,7 +63,7 @@ public final class LauncherSettingsSmoke extends Instrumentation {
             }
             // Leave sounds off for the first Home round trip.
             if (sounds) activate(R.id.soundsChoice);
-            activate(R.id.wallpaperChoice);
+            selectWallpaper(1);
             check(Config.WALLPAPER_AURORA.equals(Config.load(getTargetContext()).wallpaperChoice),
                     "First wallpaper activation selects Aurora");
             backToHome();
@@ -88,7 +88,7 @@ public final class LauncherSettingsSmoke extends Instrumentation {
             checkRow(R.id.soundsChoice, getTargetContext().getString(R.string.settings_sounds) + ", "
                     + getTargetContext().getString(R.string.off));
             activate(R.id.soundsChoice);
-            activate(R.id.wallpaperChoice);
+            selectWallpaper(2);
             check(Config.WALLPAPER_OFF.equals(Config.load(getTargetContext()).wallpaperChoice),
                     "Next wallpaper activation selects Off");
             backToHome();
@@ -97,9 +97,9 @@ public final class LauncherSettingsSmoke extends Instrumentation {
                     "Returning Home restores enabled navigation sounds");
 
             openSettings();
-            activate(R.id.wallpaperChoice);
+            selectWallpaper(0);
             check(!choices.contains("wallpaper_choice"), "Cycling to Theme removes the wallpaper override");
-            activate(R.id.wallpaperChoice);
+            selectWallpaper(1);
             activate(R.id.followThemeChoice);
             check(!choices.contains("navigation_sounds") && !choices.contains("wallpaper_choice"),
                     "Follow theme resets sound and wallpaper choices");
@@ -159,6 +159,24 @@ public final class LauncherSettingsSmoke extends Instrumentation {
         waitForIdleSync();
     }
 
+    private void selectWallpaper(int index) {
+        ActivityMonitor monitor = addMonitor(FeatureSettingsActivity.class.getName(), null, false);
+        activate(R.id.wallpaperChoice);
+        FeatureSettingsActivity feature = (FeatureSettingsActivity) waitForMonitorWithTimeout(monitor, 4000);
+        check(feature != null, "Wallpaper row opens native wallpaper settings");
+        settle();
+        ui(() -> feature.findViewById(R.id.featureRows).findViewWithTag("wallpaper_source").performClick());
+        settle();
+        ui(() -> {
+            try {
+                java.lang.reflect.Field field = FeatureSettingsActivity.class.getDeclaredField("activeDialog");
+                field.setAccessible(true);
+                ((android.app.AlertDialog) field.get(feature)).getListView().performItemClick(null, index, index);
+            } catch (Exception e) { throw new RuntimeException(e); }
+        });
+        settle(); sendKeyDownUpSync(KeyEvent.KEYCODE_BACK); settle(); removeMonitor(monitor);
+    }
+
     private void checkRow(int id, String text) {
         ui(() -> check(text.contentEquals(settings.findViewById(id).getContentDescription()),
                 "Setting label reflects the saved choice"));
@@ -168,11 +186,15 @@ public final class LauncherSettingsSmoke extends Instrumentation {
         java.util.List<Integer> rows = new java.util.ArrayList<>();
         rows.add(R.id.wallpaperChoice);
         rows.add(R.id.rowsChoice);
+        rows.add(R.id.skyChoice);
         rows.add(R.id.animationsChoice);
         if (settings.findViewById(R.id.advancedChoice).isEnabled()) rows.add(R.id.advancedChoice);
         rows.add(R.id.soundsChoice);
         rows.add(R.id.libraryChoice);
         rows.add(R.id.statsChoice);
+        rows.add(R.id.idleClockChoice);
+        rows.add(R.id.appCustomizationChoice);
+        rows.add(R.id.remoteButtonsChoice);
         rows.add(R.id.followThemeChoice);
         rows.add(R.id.defaultHomeChoice);
         rows.add(R.id.tvSettingsChoice);

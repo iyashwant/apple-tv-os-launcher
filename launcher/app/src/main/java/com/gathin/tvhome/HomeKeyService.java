@@ -33,11 +33,8 @@ public class HomeKeyService extends AccessibilityService {
         super.onServiceConnected();
         settingsScancodes = getResources().getIntArray(R.array.settings_key_scancodes);
         // Keycodes and the panel choice can also come from a theme; theme.sh restarts this service.
-        Config config = Config.load(this);
-        settingsKeycodes = config.settingsKeycodes;
-        settingsPanel = config.settingsKeyPanel;
-        appKeys = RemoteKeys.parseAppKeys(config.appKeys);
-        appScancodes = RemoteKeys.parseAppScancodes(config.appKeys);
+        reloadMappings();
+        FeaturePreferences.prefs(this).registerOnSharedPreferenceChangeListener(mappingChanges);
     }
 
     private boolean isSettingsKey(KeyEvent event) {
@@ -49,6 +46,7 @@ public class HomeKeyService extends AccessibilityService {
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
+        if (RemoteLearning.handle(event)) return true;
         // A scancode entry is more specific than any keycode, so it goes first.
         String scanApp = appScancodes.get(event.getScanCode());
         if (scanApp != null) {
@@ -93,5 +91,20 @@ public class HomeKeyService extends AccessibilityService {
 
     @Override
     public void onInterrupt() {
+    }
+
+    private final android.content.SharedPreferences.OnSharedPreferenceChangeListener mappingChanges = (prefs, key) -> {
+        if ("remote_mappings".equals(key)) reloadMappings();
+    };
+    private void reloadMappings() {
+        Config config = Config.load(this);
+        settingsKeycodes = config.settingsKeycodes;
+        settingsPanel = config.settingsKeyPanel;
+        appKeys = RemoteKeys.parseAppKeys(config.appKeys);
+        appScancodes = RemoteKeys.parseAppScancodes(config.appKeys);
+    }
+    @Override public void onDestroy() {
+        FeaturePreferences.prefs(this).unregisterOnSharedPreferenceChangeListener(mappingChanges);
+        super.onDestroy();
     }
 }

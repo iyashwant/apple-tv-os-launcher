@@ -329,7 +329,7 @@ tools/theme.sh themes/aurora                                 # push a theme; --r
 | [`tools/check.py`](tools/check.py) | Compares the TV with the list that was applied, for what a firmware update undid; `--fix` puts it back. |
 | [`tools/theme.sh`](tools/theme.sh) | Push a folder from [`themes/`](themes/) to the launcher and restart Home. |
 | [`tools/race_calendar.py`](tools/race_calendar.py) | Writes this season's F1 calendar into a theme for race-weekend mode, from the free Jolpica API. |
-| [`launcher/build-and-install.sh`](launcher/build-and-install.sh) | Builds a shrunk release (about 501 KiB), installs it, switches Home, and rolls back if Home does not land on it. |
+| [`launcher/build-and-install.sh`](launcher/build-and-install.sh) | Builds a shrunk release (about 1.5 MB including the offline Scenes pack), installs it, switches Home, and rolls back if Home does not land on it. |
 
 The scripts never leave the TV without a Home app: they only disable a stock launcher they recognise,
 and skip the Home app in a list until another launcher answers HOME. Details below.
@@ -380,14 +380,16 @@ and [Troubleshooting](docs/TROUBLESHOOTING.md). The installer checks the TV SDK 
 This branch keeps its tvOS-style glass Home, folders, quick settings and grouped launcher settings
 while integrating upstream Launcher 2.5. The optional cinematic shelf, compact network controls,
 collection wallpaper picker, persistent playback order, idle clock and app overrides use the same
-native visual foundation. See [upstream integration notes](docs/upstream-integration.md) for the
+native visual foundation. Launcher settings has a live Home preview; app artwork can use another
+installed app’s icon. See the [on-TV feature guide](docs/features.md) and [upstream integration notes](docs/upstream-integration.md) for the
 configuration choices and validation record.
 
-A small native Android TV app (`com.gathin.tvhome`, about 501 KiB installed) in plain Java with
+A small native Android TV app (`com.gathin.tvhome`, about 1.5 MB with the offline Scenes pack) in plain Java with
 AndroidX RecyclerView and nothing heavier. Built for sets with 1 GB of RAM: static colour fields and
-translucent glass surfaces, with no live blur, video, network requests, or background services.
-Folders use a solid black backdrop that fades over the intact Home view, preserving the dock and
-tile corners throughout the transition. No screenshot or blur preparation delays opening, and Home
+translucent glass surfaces, with no live blur, video, or always-running background workers. Public race-calendar updates and city search
+are optional network features; wallpapers, the clock and sunrise calculations work offline after setup.
+Folders share Home’s current wallpaper, dimming and sky, fading that background over the intact
+Home tiles while preserving dock and tile corners throughout the transition. No screenshot or blur preparation delays opening, and Home
 stays laid out for an immediate return on Back. App menus, folder dialogs and the App Library blur a small
 snapshot of their own bounds once when opened. The material approximates the
 screenshots on older Android TVs; it does not use Apple's native Liquid Glass renderer.
@@ -398,6 +400,7 @@ the install script finds `~/Android/Sdk` and the `java` on your PATH.
 - **Reorder apps** from the remote: hold OK on a tile to open its menu, then choose **Move**. The menu appears beside that tile, switching sides near the screen edge. Use the D-pad to move it, OK to save, or Back to cancel the whole move. Apps shift to make room, including across the first-row dock, so this is also how you change a dock app. **App settings** remains in the same menu. Saved order, folder names and membership survive restarts and app updates; newly discovered apps follow the saved apps. Leaving Home cancels an unconfirmed move. The same controls reorder apps inside a folder. Existing saved orders migrate automatically, and the original `app-order-v1.json` remains intact. Once customized, your order takes precedence over the theme's dock order; theme colours, wallpaper, hidden apps, and column count still apply.
 - **Configure** in [`config.xml`](launcher/app/src/main/res/values/config.xml): dock order, hidden apps, the Live TV package, columns (tiles shrink from 5 up; 6 by default), rows under the dock, the top shelf's app name (`dock_title`), the App Library (`app_library`, on by default), an optional VPN app for the network pill, and `reduced_motion` for TVs whose GPU cannot keep up.
 - **On-TV launcher settings:** press Settings for quick settings, then the sliders button beside *Open All Settings*, or hold OK on Settings and choose Launcher settings. Set 4, 5, 6 or 7 apps per row, choose rows below the dock, pick the wallpaper, turn animations, navigation sounds, the App Library and System info on or off, and opt into advanced effects. Animations off keeps the focused look but jumps every move, fade and folder to its end. The advanced option adds tile lift, artwork zoom and smooth ambient-colour transitions; it may use more memory. Use Follow theme to clear on-TV choices. Pushing or resetting a theme also clears them.
+- **Feature controls on the TV:** Wallpaper includes all 14 offline Scenes, rotation order/interval, full color and dimming. Sky & race weekends adds city selection and calendar updates; Idle clock adds a timer and preview. App customization changes labels, actions and artwork; Remote buttons learns physical button assignments. See [the feature guide](docs/features.md).
 - **Change the default home:** Launcher settings and the optional Default-home tile (`show_home_settings_shortcut`) open Android's home picker. Choose the original launcher to stop using CleanYourTV as Home, or CleanYourTV to return. The original launcher must be enabled. If the install script disabled it, use the restore script below first. Some TVs provide no home picker.
 - **Themes** set the same keys plus a background colour and a wallpaper from a `config.json` pushed to the TV, no rebuild. Five ship in [`themes/`](themes/), documented there.
 - **Language** follows the TV: English, German, Spanish, Catalan, French, Russian, Serbian (Latin), Polish, Portuguese, Turkish, Arabic, Hebrew, Simplified Chinese, Traditional Chinese (Taiwan), Thai, Finnish, Vietnamese, Bangla, Czech, Indonesian, Italian, Norwegian Bokmål, Dutch and Uzbek. Android 13+ can set it for the launcher alone: `tools/tv.py 'cmd locale set-app-locales com.gathin.tvhome --locales ca'`.
@@ -447,8 +450,13 @@ return focus using monitored external launches. Install the matching **debug app
 
 `FolderMotionSmoke` measures click-to-motion and Back-to-motion timing, verifies that Home's holders
 are retained, and compares native screenshot pixels around tile and dock corners at five points in
-each transition. It also checks the solid black folder backdrop. It uses an existing folder on a
+each transition. It also checks that the folder matches Home’s wallpaper and sky. It uses an existing folder on a
 physical TV without changing its saved layout, and synthetic apps on an emulator.
+
+`AppearanceSmoke` checks rendered column/row previews, wallpaper changes and dimming, and folder
+backgrounds for Aurora, Scenes and wallpaper off, including rotation while a folder is open.
+`FeatureSettingsSmoke` covers native feature controls and icon borrowing, persistence, cancellation
+and missing-source fallback. Both use reversible fixtures and must run only on an emulator.
 
 Firmware-specific settings components, actions and slice resource names are declared in `config.xml`
 and can be overridden through a theme; see [firmware settings routes](themes/README.md#firmware-settings-routes).

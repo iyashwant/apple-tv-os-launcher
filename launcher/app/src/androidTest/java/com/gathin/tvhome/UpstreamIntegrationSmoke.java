@@ -33,6 +33,7 @@ import java.util.Set;
 public final class UpstreamIntegrationSmoke extends Instrumentation {
     private MainActivity home;
     private Activity settings;
+    private FeatureSettingsActivity feature;
     private int checks;
 
     @Override public void onCreate(Bundle args) { super.onCreate(args); start(); }
@@ -130,20 +131,29 @@ public final class UpstreamIntegrationSmoke extends Instrumentation {
             });
             settings = startActivitySync(new Intent(ctx, LauncherSettingsActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             settle();
+            ActivityMonitor featureMonitor = addMonitor(FeatureSettingsActivity.class.getName(), null, false);
             ui(() -> {
                 home.onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW);
                 check(((RecyclerView) home.findViewById(R.id.grid)).getAdapter() == null, "Low memory while hidden releases tile views");
                 settings.findViewById(R.id.wallpaperChoice).performClick();
             });
             settle();
-            Field picker = LauncherSettingsActivity.class.getDeclaredField("wallpaperPicker");
-            picker.setAccessible(true);
-            AlertDialog dialog = (AlertDialog) picker.get(settings);
-            check(dialog != null && "02.jpg".equals(dialog.getListView().getAdapter().getItem(4)),
-                    "Native wallpaper picker includes the collection");
-            ui(() -> check(dialog.getListView().performItemClick(null, 4, 4), "Collection row accepts selection"));
+            feature = (FeatureSettingsActivity) waitForMonitorWithTimeout(featureMonitor, 4000);
+            check(feature != null, "Wallpaper row opens native feature settings");
+            ui(() -> feature.findViewById(R.id.featureRows).findViewWithTag("wallpaper_source").performClick());
             settle();
-            check("02.jpg".equals(Config.load(ctx).wallpaperChoice), "The glass picker saves a filename without losing Aurora/Off choices: " + choices.getAll());
+            Field picker = FeatureSettingsActivity.class.getDeclaredField("activeDialog");
+            picker.setAccessible(true);
+            AlertDialog dialog = (AlertDialog) picker.get(feature);
+            int index = -1;
+            for (int i = 0; i < dialog.getListView().getAdapter().getCount(); i++)
+                if ("02.jpg".equals(dialog.getListView().getAdapter().getItem(i))) index = i;
+            check(index >= 0, "Wallpaper picker includes external pictures alongside bundled Scenes");
+            final int pickedIndex = index;
+            ui(() -> check(dialog.getListView().performItemClick(null, pickedIndex, pickedIndex), "Collection row accepts selection"));
+            settle();
+            check("02.jpg".equals(Config.load(ctx).wallpaperChoice), "Picker saves a filename without losing Aurora/Off choices");
+            sendKeyDownUpSync(KeyEvent.KEYCODE_BACK); settle(); feature = null; removeMonitor(featureMonitor);
             ui(() -> settings.findViewById(R.id.rowsChoice).performClick());
             check(choices.contains(Config.ROWS_BELOW_DOCK_KEY), "Grouped rows control saves its override");
             ui(() -> settings.findViewById(R.id.followThemeChoice).performClick());
@@ -161,7 +171,7 @@ public final class UpstreamIntegrationSmoke extends Instrumentation {
             code = Activity.RESULT_CANCELED;
             result.putString("stream", "FAIL after " + checks + " integration checks: " + android.util.Log.getStackTraceString(failure));
         } finally {
-            ui(() -> { if (settings != null) settings.finish(); if (home != null) home.finish(); });
+            ui(() -> { if (feature != null) feature.finish(); if (settings != null) settings.finish(); if (home != null) home.finish(); });
             waitForIdleSync();
             if (images != null && images.isDirectory()) {
                 File[] fixtures = images.listFiles();

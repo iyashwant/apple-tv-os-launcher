@@ -234,9 +234,10 @@ final class Config {
         File dir = dir(ctx);
         File file = dir != null ? new File(dir, FILE_NAME) : null;
         boolean mounted = Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState());
-        JSONObject json = readOverlay(ctx, file, mounted);
+        JSONObject theme = readOverlay(ctx, file, mounted);
+        JSONObject json = FeaturePreferences.overlay(ctx, theme);
+        applied = theme != null;
         if (json != null) {
-            applied = true;
             dock = stringList(json, "dock_apps", dock);
             hidden = stringList(json, "hidden_apps", hidden);
             liveTv = string(json, "live_tv_package", liveTv);
@@ -304,7 +305,15 @@ final class Config {
         if (!WallpaperRotation.validOrder(wallpaperOrder)) wallpaperOrder = WallpaperRotation.ORDER_SHUFFLE;
         List<File> wallpapers = new ArrayList<>();
         // Keep Theme / Aurora / Off choices from this fork. A collection filename pins one external picture.
-        if (!WALLPAPER_THEME.equals(wallpaperChoice) && !WALLPAPER_AURORA.equals(wallpaperChoice)
+        if (FeaturePreferences.SCENES.equals(wallpaperChoice)) {
+            wallpapers.addAll(SceneFiles.images(ctx));
+            wallpaper = wallpapers.isEmpty() ? null : wallpapers.get(0);
+            wallpaperEnabled = wallpaper != null;
+        } else if (wallpaperChoice.startsWith(FeaturePreferences.SCENE_PREFIX)) {
+            wallpaper = WallpaperRotation.find(SceneFiles.images(ctx), wallpaperChoice.substring(FeaturePreferences.SCENE_PREFIX.length()));
+            if (wallpaper != null) { wallpapers.add(wallpaper); wallpaperEnabled = true; }
+            else wallpaperChoice = WALLPAPER_THEME;
+        } else if (!WALLPAPER_THEME.equals(wallpaperChoice) && !WALLPAPER_AURORA.equals(wallpaperChoice)
                 && !WALLPAPER_OFF.equals(wallpaperChoice)) {
             File picked = WallpaperRotation.find(WallpaperRotation.images(
                     dir == null ? null : new File(dir, "wallpapers")), wallpaperChoice);

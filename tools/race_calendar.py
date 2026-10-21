@@ -5,8 +5,8 @@
                                                  <theme folder>/config.json, keeping every other key
     race_calendar.py <theme folder> --season 2027
 
-Then push the theme as usual: tools/theme.sh <theme folder>. The launcher never goes online; this script is
-the only thing that does, once, on your computer. The data comes from Jolpica (https://jolpi.ca), the free
+Then push the theme as usual: tools/theme.sh <theme folder>. The launcher can also update its calendar from on-TV settings. This script remains an
+offline-theme deployment option, fetching the data once on your computer. The data comes from Jolpica (https://jolpi.ca), the free
 community successor to the Ergast API: no key, no account. Run it again when F1 moves a session or a new
 season starts. Races that are already over are left out.
 """
