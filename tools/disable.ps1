@@ -58,7 +58,12 @@ if (-not $env:FORCE_HOME) {
         # Every package with a HOME activity the TV can start now; a disabled one does not answer.
         $claimQuery = 'cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME'
         $claims = @(& $py -I (Join-Path $repo 'tools\tv.py') $claimQuery | ForEach-Object {
-            if ($_ -match '^\s*([A-Za-z0-9_.]+)/') { $Matches[1] }
+            # Keep the class: a vendor fallback is named FallbackHome and is not a usable launcher
+            # (TCL Android TV sets register com.tcl.keycustomfunctionservice/.FallbackHome).
+            # Trim first: a trailing CR from the TV would stop the `$` anchor from matching any line.
+            if ("$_".Trim() -match '^([A-Za-z0-9_.]+)/([A-Za-z0-9_.$]+)$') {
+                if ($Matches[2] -notmatch 'FallbackHome$') { $Matches[1] }
+            }
         } | Sort-Object -Unique)
         # The setup wizard and the settings apps answer HOME too, but they are not launchers (disable.sh).
         $notLaunchers = @('com.google.android.tungsten.setupwraith', 'com.android.tv.settings', 'com.android.settings', 'com.android.provision')
@@ -66,6 +71,30 @@ if (-not $env:FORCE_HOME) {
         if ($others.Count -eq 0) {
             Write-Warning "Skipping ${homePkg}: it owns Home, and no other app that can answer Home is installed and staying enabled. Make the new launcher Home first (launcher\build-and-install.ps1), then run this list again to disable the old one; or set `$env:FORCE_HOME=1 if you can still reach the TV."
             $pkgs = @($pkgs | Where-Object { $_ -ne $homePkg })
+        }
+    }
+}
+# Same as disable.sh (#321): a package that asks for android.permission.TV_INPUT_HARDWARE is the software
+# layer under the HDMI, AV and tuner inputs. Disable one and the port still notices the cable but shows
+# "No Signal" for good; re-enabling the pieces in batches does not bring the picture back, a full restore
+# and a cold boot do. Keep them; `$env:TVINPUT_ALLOW=1` disables them anyway.
+if (-not $env:TVINPUT_ALLOW -and $pkgs.Count -gt 0) {
+    # Trailing `; true`: the loop's status is the last package's `grep -q`, which is nonzero whenever the
+    # last listed package is not an input driver, and would look like a failed check.
+    $loop = 'for p in ' + ($pkgs -join ' ') + '; do dumpsys package $p | sed -n -E ''/requested permissions:/,/(install|runtime) permissions:|User [0-9]+:/p'' | grep -q TV_INPUT_HARDWARE && echo $p; done; true'
+    # Windows PowerShell turns redirected stderr into an error that 'Stop' would throw (see getprop).
+    $ErrorActionPreference = 'Continue'
+    $tvhw = @(& $py -I (Join-Path $repo 'tools\tv.py') $loop 2>$null)
+    $checked = $LASTEXITCODE -eq 0
+    $ErrorActionPreference = 'Stop'
+    if (-not $checked) {
+        Write-Warning 'Could not check which listed packages drive the HDMI/AV inputs (tv.py failed). Check every input after this run: a port that notices the cable and stays black means one of them was disabled, and only a full restore and a cold boot bring it back (#321).'
+    } else {
+        foreach ($p in ($tvhw | ForEach-Object { $_.Trim() } | Where-Object { $_ })) {
+            if ($pkgs -contains $p) {
+                Write-Warning "Skipping ${p}: it asks for android.permission.TV_INPUT_HARDWARE, so it is the software layer under the HDMI/AV/tuner inputs. With it disabled those inputs still notice the cable but stay black (No Signal), and re-enabling the pieces in batches does not restore the picture: a full restore plus a cold boot does (#321). Set `$env:TVINPUT_ALLOW=1 to disable it."
+                $pkgs = @($pkgs | Where-Object { $_ -ne $p })
+            }
         }
     }
 }

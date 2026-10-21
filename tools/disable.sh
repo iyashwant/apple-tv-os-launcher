@@ -66,18 +66,71 @@ if [ -n "$HOME_PKG" ] && printf '%s\n' "$PKGS" | grep -xF "$HOME_PKG" >/dev/null
   # Every package with a HOME activity the TV can start now: disabled packages do not answer, so this
   # is "what could take Home if the list went through".
   CLAIMS=$("$PY" -I tools/tv.py 'cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME' 2>/dev/null \
-    | tr -d '\r' | grep -o '^ *[A-Za-z0-9_.]*/' | tr -d ' /' | sort -u || true)
+    | tr -d '\r' | grep -oE '^ *[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+' | sed -E 's/^ +//' | sort -u || true)
   # Nothing left to answer Home once the list is applied, or the TV could not say who does: either
   # way the owner is the only Home this run knows about, so it stays enabled.
   # The setup wizard and the settings apps answer HOME too, but they are not launchers: on Google TV,
   # setupwraith taking Home is the crash loop this guard exists to prevent. They don't count.
-  OTHERS=$(printf '%s\n' "$CLAIMS" | grep -vxF "$HOME_PKG" | grep -vxF "$PKGS" \
+  # A vendor's own fallback does not count either: TCL Android TV sets register
+  # com.tcl.keycustomfunctionservice/.FallbackHome (and com.android.tv.settings/.system.FallbackHome),
+  # a placeholder the firmware shows when no launcher is enabled, not a home the viewer can use.
+  OTHERS=$(printf '%s\n' "$CLAIMS" | grep -vE '/[^ ]*FallbackHome$' | cut -d/ -f1 | sort -u \
+    | grep -vxF "$HOME_PKG" | grep -vxF "$PKGS" \
     | grep -vxF -e com.google.android.tungsten.setupwraith -e com.android.tv.settings -e com.android.settings -e com.android.provision || true)
   if [ -z "$OTHERS" ]; then
     echo "Skipping $HOME_PKG: it owns Home, and no other app that can answer Home is installed and" >&2
     echo "staying enabled. Make the new launcher Home first (launcher/build-and-install.sh), then run" >&2
     echo "this list again to disable the old one; or set FORCE_HOME=1 if you can still reach the TV." >&2
     PKGS="$(printf '%s\n' "$PKGS" | grep -vxF "$HOME_PKG" || true)"
+  fi
+fi
+
+# Only the package's own "requested permissions" block counts: a vendor app in a shared UID would otherwise
+# match through its shared user's permissions and be skipped by mistake.
+# A package that asks for android.permission.TV_INPUT_HARDWARE is usually the software layer under the
+# HDMI, AV and tuner inputs: routing, the HDCP handshake and scaling live in it. Disable one and the port
+# still notices the cable but shows "No Signal" for good; re-enabling the pieces in batches does not bring
+# the picture back, a full restore and a cold boot do (#321, OnePlus TV on Android 11). Keep those
+# packages; TVINPUT_ALLOW=1 disables them anyway.
+# The permission alone is a loose test and does produce false positives: on a Vestel shandao set the
+# MediaTek USB media player asks for it and implements no input at all. The decisive check is which
+# packages serve the service, `pm query-services --components -a android.media.tv.TvInputService`, but it
+# stays out of this guard on purpose: the command is missing on the older firmware this repo also covers,
+# and a guard that fails open costs someone their HDMI ports. So the skip still goes by the permission,
+# and the message tells the owner how to tell a false positive from the real thing.
+if [ -n "$PKGS" ] && [ -z "${TVINPUT_ALLOW:-}" ]; then
+  # One round trip: the loop runs on the TV, where `dumpsys package` prints the permissions a package
+  # asks for. Every name was checked as a bare package name above, so none of them can add shell syntax
+  # here. </dev/null so the client cannot read this script's stdin (that is the piped batch below);
+  # tr -d '\r' because adb can end lines with CRLF, which would leave a CR on every name.
+  NAMES="$(printf '%s ' $PKGS)"
+  # Trailing `; true`: the loop's status is the last package's `grep -q`, which is nonzero whenever
+  # the last listed package is not an input driver — the common case — and would look like a failed
+  # check. Only a real failure (tv.py cannot reach the TV) should reach the warning below.
+  if TV_HW="$("$PY" -I tools/tv.py \
+      "for p in $NAMES; do dumpsys package \$p | sed -n -E '/requested permissions:/,/(install|runtime) permissions:|User [0-9]+:/p' | grep -q TV_INPUT_HARDWARE && echo \$p; done; true" \
+      </dev/null 2>/dev/null | tr -d '\r')"; then
+    for p in $TV_HW; do
+      # grep without -q: with pipefail an early exit could SIGPIPE printf and fail the run (see above).
+      printf '%s\n' "$PKGS" | grep -xF "$p" >/dev/null || continue
+      echo "Skipping $p: it asks for android.permission.TV_INPUT_HARDWARE, so it is the software layer" >&2
+      echo "under the HDMI/AV/tuner inputs. With it disabled those inputs still notice the cable but stay" >&2
+      echo "black (\"No Signal\"), and re-enabling the pieces in batches does not restore the picture: a" >&2
+      echo "full restore plus a cold boot does (#321)." >&2
+      echo "Asking for the permission is not proof, though: a preloaded app can request it and drive no" >&2
+      echo "input at all. What settles it is which packages actually serve the input service:" >&2
+      echo "  pm query-services --components -a android.media.tv.TvInputService" >&2
+      echo "If $p is absent from that list it is a false positive on your set, as a MediaTek USB media" >&2
+      echo "player turned out to be (examples/cecotec-shandao). Check every input after a reboot before" >&2
+      echo "trusting it, then set TVINPUT_ALLOW=1 to disable it." >&2
+      PKGS="$(printf '%s\n' "$PKGS" | grep -vxF "$p" || true)"
+    done
+  else
+    # Do not skip anything on a guess, but say the check did not run: a black input is easy to blame on
+    # the cable, and the ports are the one thing the owner cannot test from here.
+    echo "Could not check which listed packages drive the HDMI/AV inputs (tv.py failed). Check every" >&2
+    echo "input after this run: a port that notices the cable and stays black means one of them was" >&2
+    echo "disabled, and only a full restore and a cold boot bring it back (#321)." >&2
   fi
 fi
 

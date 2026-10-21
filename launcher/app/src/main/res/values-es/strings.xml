@@ -100,4 +100,19 @@
         <item quantity="other">%1$d aplicaciones</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+
+    <string name="rows_below_dock_label">Filas debajo del dock</string>
+    <string name="wallpaper_label">Fondo</string>
+    <string name="wallpaper_state">Fondo: %1$s</string>
+    <string name="wallpaper_none">Ninguno</string>
+    <string name="wallpaper_applied">Fondo cambiado</string>
+    <string name="wallpaper_theme_default">Predeterminado del tema</string>
+
+    <string name="race_kicker">Ronda %1$d · %2$s · %3$s</string>
+    <string name="race_kicker_no_place">Ronda %1$d · %2$s</string>
+    <string name="race_next">%1$s en %2$s</string>
+    <string name="race_lights_out">Salida en %1$s</string>
+    <string name="race_live">%1$s · en directo</string>
+    <string name="race_finished">Bandera a cuadros</string>
+    <string name="last_opened">Abierta por última vez %1$s</string>
 </resources>

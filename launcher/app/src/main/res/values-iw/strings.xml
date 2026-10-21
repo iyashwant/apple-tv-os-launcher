@@ -134,8 +134,21 @@
     <string name="settings_stats">מידע מערכת</string>
     <string name="settings_stats_hint">שורה שקטה מתחת לשעון עם ניצול המעבד, הזיכרון הפנוי והאחסון הפנוי, מתעדכנת כל 10 שניות.</string>
     <string name="navigation_sounds_state">צלילי ניווט: %1$s</string>
-    <string name="wallpaper_state">תמונת רקע: %1$s</string>
+    <string name="wallpaper_state">טפט: %1$s</string>
     <string name="wallpaper_aurora">זוהר</string>
     <string name="wallpaper_theme">ערכת נושא</string>
     <string name="wallpaper_hint">לחצו על OK כדי לבחור ערכת נושא, זוהר או כבוי. השינוי יחול בחזרה למסך הבית.</string>
+    <string name="rows_below_dock_label">שורות מתחת לעגינה</string>
+    <string name="wallpaper_label">טפט</string>
+    <string name="wallpaper_none">ללא</string>
+    <string name="wallpaper_applied">הטפט שונה</string>
+    <string name="wallpaper_theme_default">ברירת המחדל של ערכת הנושא</string>
+    <string name="race_kicker">סבב %1$d · %2$s · %3$s</string>
+    <string name="race_kicker_no_place">סבב %1$d · %2$s</string>
+    <string name="race_next">%1$s בעוד %2$s</string>
+    <string name="race_lights_out">הזינוק בעוד %1$s</string>
+    <string name="race_live">%1$s · בשידור חי</string>
+    <string name="race_finished">הדגל המשובץ</string>
+    <string name="last_opened">נפתח לאחרונה %1$s</string>
+    <string name="settings_rows_hint">לחצו על אישור כדי לבחור כמה שורות יישומים יוצגו מתחת למעגן. השינוי יחול בחזרה למסך הבית.</string>
 </resources>

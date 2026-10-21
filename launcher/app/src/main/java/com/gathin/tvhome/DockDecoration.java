@@ -17,6 +17,8 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     private final int dockSize;
     private final float density;
     private boolean enabled = true;
+    private boolean names;
+    void setShowNames(boolean value) { names = value; }
     private final Paint body = new Paint(3), warmth = new Paint(3), reflection = new Paint(3);
     private final Paint edge = new Paint(3), innerEdge = new Paint(3);
     private final Paint[] layers = {body, warmth, reflection, edge, innerEdge};
@@ -85,7 +87,10 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             else rect.union(l, t, l + card.getWidth(), t + card.getHeight());
         }
         if (!found) return;
-        rect.inset(-18 * density, -16 * density);
+        float side = Math.max(0f, Math.min(18 * density,
+                Math.min(rect.left, parent.getWidth() - rect.right) - density));
+        rect.inset(-side, -16 * density);
+        if (names) rect.bottom += 22 * density;
         float radius = 36 * density;
         shaders(rect.width(), rect.height());
         matrix.setTranslate(rect.left, rect.top);

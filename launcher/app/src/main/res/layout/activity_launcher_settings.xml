@@ -166,6 +166,8 @@
 
                 <View style="@style/SettingsDivider" />
                 <com.gathin.tvhome.SettingsRowView android:id="@+id/wallpaperChoice" style="@style/SettingsRow" android:text="@string/settings_wallpaper" />
+                <View style="@style/SettingsDivider" />
+                <com.gathin.tvhome.SettingsRowView android:id="@+id/rowsChoice" style="@style/SettingsRow" android:text="@string/rows_below_dock_label" />
             </LinearLayout>
 
             <TextView style="@style/SettingsSection" android:layout_marginTop="22dp" android:text="@string/settings_experience" />

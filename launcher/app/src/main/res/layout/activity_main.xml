@@ -14,6 +14,12 @@
         android:layout_height="match_parent"
         android:importantForAccessibility="no" />
 
+    <!-- Optional cinematic artwork; the regular glass Home keeps these layers gone. -->
+    <ImageView android:id="@+id/heroArt" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:scaleType="fitXY" android:alpha="0" android:visibility="gone" android:importantForAccessibility="no" />
+    <View android:id="@+id/heroScrim" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:visibility="gone" android:importantForAccessibility="no" />
+
     <!-- Ambient glow in the colour of the focused dock app. An image, not a background: with no
          background an ImageView fades by drawing its one bitmap with alpha, not through a full-screen layer. -->
     <ImageView
@@ -25,20 +31,26 @@
         android:importantForAccessibility="no"
         android:contentDescription="@null" />
 
-
     <!-- Top shelf: the focused dock app's name, positioned above the dock in code. -->
+    <LinearLayout android:id="@+id/hero" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_marginStart="68dp" android:layout_gravity="left" android:gravity="left"
+        android:orientation="vertical" android:alpha="0" android:importantForAccessibility="noHideDescendants">
     <TextView
         android:id="@+id/heroName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="68dp"
-        android:alpha="0"
         android:textColor="#FFFFFFFF"
         android:textSize="48sp"
         android:fontFamily="@font/outfit_light"
         android:letterSpacing="-0.02"
         android:includeFontPadding="false"
         android:singleLine="true" />
+        <TextView android:id="@+id/heroMeta" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginTop="10dp" android:textSize="14sp" android:fontFamily="@font/outfit_regular"
+            android:textColor="#99FFFFFF" android:visibility="gone" />
+        <LinearLayout android:id="@+id/heroDots" android:layout_width="wrap_content" android:layout_height="6dp"
+            android:layout_marginTop="14dp" android:orientation="horizontal" android:visibility="gone" />
+    </LinearLayout>
 
     <!-- Focus zoom extends beyond the buttons; every header ancestor must allow it to draw. -->
     <LinearLayout
@@ -217,6 +229,11 @@
                     android:text="@string/wifi"
                     android:drawableStart="@drawable/ic_wifi" />
 
+                <ImageButton android:id="@+id/btnLibraryTop" style="@style/TopButton"
+                    android:layout_width="42dp" android:padding="10dp" android:paddingStart="10dp" android:paddingEnd="10dp"
+                    android:contentDescription="@string/app_library" android:tint="@drawable/pill_text"
+                    android:src="@drawable/ic_apps" android:visibility="gone" />
+
                 <ImageButton
                     android:id="@+id/btnSettings"
                     style="@style/TopButton"
@@ -227,6 +244,16 @@
                     android:contentDescription="@string/quick_settings"
                     android:tint="@drawable/pill_text"
                     android:src="@drawable/ic_settings" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/racePanel" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_below="@id/stats" android:layout_marginTop="12dp" android:orientation="vertical"
+                android:padding="16dp" android:gravity="left" android:visibility="gone">
+                <TextView android:id="@+id/raceKicker" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:gravity="left" android:textSize="11sp" android:fontFamily="@font/outfit_medium" android:textColor="#99FFFFFF" />
+                <TextView android:id="@+id/raceHeadline" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:gravity="left" android:layout_marginTop="4dp" android:textSize="24sp" android:fontFamily="@font/outfit_light" android:textColor="#FFFFFFFF" />
+                <TextView android:id="@+id/raceSessions" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:gravity="left" android:layout_marginTop="6dp" android:textSize="11sp" android:fontFamily="@font/outfit_regular" android:textColor="#99FFFFFF" />
             </LinearLayout>
         </RelativeLayout>
 

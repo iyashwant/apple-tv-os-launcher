@@ -18,7 +18,8 @@
     <string name="offline">Sem conexão</string>
     <string name="not_available">Não disponível nesta TV</string>
     <string name="cant_open">Não foi possível abrir %1$s</string>
-    <string name="date_format">EEE  d \'de\' MMMM</string>
+    <string name="date_format">EEEE  d \'de\' MMMM</string>
+    <string name="date_format_home">EEEE\nd \'de\' MMMM</string>
     <string name="stats_cpu">CPU %1$d%%</string>
     <string name="stats_memory">Memória %1$d MB livres</string>
     <string name="stats_storage">Armazenamento %1$s livre</string>
@@ -116,4 +117,21 @@
         <item quantity="other">%1$d apps</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+
+    <!-- Launcher settings, quick settings panel, race-weekend panel and cinematic shelf. -->
+
+    <string name="rows_below_dock_label">Fileiras abaixo do dock</string>
+    <string name="wallpaper_label">Papel de parede</string>
+    <string name="wallpaper_state">Papel de parede: %1$s</string>
+    <string name="wallpaper_none">Nenhum</string>
+    <string name="wallpaper_applied">Papel de parede alterado</string>
+    <string name="wallpaper_theme_default">Padrão do tema</string>
+
+    <string name="race_kicker">Etapa %1$d · %2$s · %3$s</string>
+    <string name="race_kicker_no_place">Etapa %1$d · %2$s</string>
+    <string name="race_next">%1$s em %2$s</string>
+    <string name="race_lights_out">Largada em %1$s</string>
+    <string name="race_live">%1$s · ao vivo</string>
+    <string name="race_finished">Bandeira quadriculada</string>
+    <string name="last_opened">Aberto %1$s</string>
 </resources>

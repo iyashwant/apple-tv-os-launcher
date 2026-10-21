@@ -149,4 +149,21 @@
          sets its opacity. Around 60 reads clearly without hiding a wallpaper. Can also be set with
          "sky_intensity": 60 in a theme's config.json. -->
     <integer name="sky_intensity">0</integer>
+    <string-array name="launch_actions">
+    </string-array>
+    <string-array name="app_labels">
+    </string-array>
+    <string-array name="app_banners">
+    </string-array>
+    <bool name="icon_only_buttons">false</bool>
+    <bool name="library_button">false</bool>
+    <integer name="wifi_label_width">0</integer>
+    <bool name="show_network_pill">true</bool>
+    <bool name="always_show_names">false</bool>
+    <bool name="wallpaper_true_color">false</bool>
+    <string name="latitude" translatable="false"></string>
+    <string name="longitude" translatable="false"></string>
+    <bool name="cinematic_home">false</bool>
+    <bool name="ambient_glow">true</bool>
+    <integer name="home_idle_clock_minutes">0</integer>
 </resources>

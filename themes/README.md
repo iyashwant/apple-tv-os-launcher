@@ -20,6 +20,7 @@ powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 th
 | `default/` | The built-in look written out as JSON, as a starting point for your own |
 | `aurora/` | A dark aurora wallpaper (teal and violet on navy, darker at the bottom) with a matching background colour |
 | `dussehra/` | Festive skin for Dussehra (ends 21 Oct 2026): a marigold toran, a faint gold rangoli, a diya for Wi-Fi, a bell for Inputs, a marigold for Settings and a petal shower |
+| `scenes/` | 14 dark illustrated landscapes in `wallpapers/`, a new one every hour; drawn from code by `tools/scenes_wallpapers.py` |
 | `six-columns/` | Six smaller tiles per row and one grid row visible under the dock |
 
 ## Keys
@@ -32,7 +33,10 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `dock_apps` | list of package names | The dock row, in order; missing apps are skipped |
 | `hidden_apps` | list of package names | Never shown as tiles |
 | `live_tv_package`, `live_tv_action` | string | The Live TV app and, if it has no leanback entry, the action to start it with |
-| `source_panel_service`, `source_panel_action` | string | The TV's own source panel, for sets with no TvInputManager |
+| `source_panel_service`, `source_panel_action` | string | The TV's own source panel, for sets with no TvInputManager: a service, or an activity (BYINTEK U4). Without a Live TV app, the Inputs pill opens it directly |
+| `launch_actions` | list of `"package=action"` | Tiles that open a screen of the app instead of its start screen; an action that no longer resolves opens the app normally (MagentaTV's guide: `com.telekom.onetv.tv.pl=com.telekom.onetv.tv.pl.action.PROGRAM_GUIDE`) |
+| `app_labels` | list of `"package=Name"` | A tile's name instead of the app's own (MagentaTV as `com.telekom.onetv.tv.pl=TV`) |
+| `app_banners` | list of `"package=banner_name"` | A tile's artwork from a `banner_*` drawable bundled with the launcher (`banner_tv`: magenta with the Live TV glyph) |
 | `input_action` | string | Action sent with an HDMI/AV row's channel URI when nothing handles the standard `VIEW` (XGIMI: `com.xgimi.action.hdmiPlayer`) |
 | `settings_package` | string | First package tried for settings slice resources, followed by discovered system Settings packages; empty disables slice lookup and discovery |
 | `settings_fallback_component` | component string | Firmware settings entry used only when neither the requested public settings page nor general settings is available |
@@ -41,9 +45,16 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `quick_audio_output_slice_resource`, `quick_bluetooth_slice_resource` | string | Names of string resources in `settings_package` containing settings slice content URIs |
 | `quick_screensaver_action` | string | Optional firmware action that starts the current screensaver |
 | `columns` | 1 to 8 | Tiles per row; tiles shrink to fit from 5 up |
-| `rows_below_dock` | 0 to 3 | Grid rows left visible under the dock |
+| `rows_below_dock` | 0 to 3 | Grid rows left visible under the dock; also adjustable in the grouped Launcher settings |
 | `dock_title` | bool | The focused dock app's name in large type on the top shelf (`true`); `false` keeps only the app-colour glow |
 | `app_library` | bool | The App Library pill after the last Home row: every installed app, add one to Home or take it off (`true` by default; also in Launcher settings). The Home choices stay on the TV when a theme is pushed or reset; see [docs/app-library.md](../docs/app-library.md) |
+
+| `show_network_pill` | bool | The Wi-Fi/Ethernet pill in the top bar (`true` by default); `false` hides it |
+| `icon_only_buttons` | bool | Wi-Fi as a round icon button; Settings already uses the fork's glass gear button and Inputs keeps its label (`false` by default) |
+| `wifi_label_width` | 0 to 300 | With `icon_only_buttons`, keep the network name on the Wi-Fi pill up to this width in dp, cut with an ellipsis; 0 leaves only the icon |
+| `library_button` | bool | The app library as a round button in the top bar, beside Settings; needs `app_library`. Closing the library returns to it |
+| `always_show_names` | bool | Names under every tile, dimmed until focused, the dock included (its band grows to hold them); `false` by default shows only the focused tile's name |
+| `wallpaper_true_color` | bool | Decode wallpapers in 32-bit colour (8 MB at 1080p) instead of RGB_565 (4 MB), which bands dark gradients such as a night sky; for TVs with 2 GB or more (`false` by default) |
 | `shamsi_date` | bool | Show the Solar Hijri date above the Gregorian one |
 | `greeting_name` | string | A name after the greeting, e.g. `"Mr. Trịnh"` for GOOD MORNING, MR. TRỊNH; empty for the greeting alone |
 | `module_cards` | bool | Look for module cards and ask about them (`true`); `false` turns the feature off |
@@ -57,8 +68,9 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `background_color` | `#RRGGBB` | Colour behind everything; black by default |
 | `sky_intensity` | 0 to 100 | Time-of-day backdrop: a dark gradient that follows the clock, 0 hides it (default) |
 | `wallpaper` | bool | Show `wallpaper.jpg` from the theme folder (`true`), or ignore it (`false`) |
-| `wallpaper_rotation_minutes` | 0 to 1440 | Randomly rotate images in the theme's `wallpapers/` folder at this interval; 0 keeps the single-image behaviour |
-| `wallpaper_dim` | 0 to 90 | Black overlay over wallpaper images, in percent; 0 by default |
+| `wallpaper_rotation_minutes` | 0 to 1440 | Rotate images in the theme's `wallpapers/` folder at this interval; 0 keeps the single-image behaviour. A negative or non-numeric value is ignored, and 0 means "no rotation", not "every minute" |
+| `wallpaper_order` | `shuffle` or `sequential` | How a collection advances. `shuffle` (the default, and what launchers did before this key existed) avoids repeating the current picture; `sequential` walks the folder in filename order and wraps at the end. An unknown value falls back to `shuffle` |
+| `wallpaper_dim` | 0 to 90 | Black overlay over wallpaper images, in percent; 0 by default and no shade view at all |
 | `festival` | string | Turns on a festive skin: the network pill becomes a diya whose flame follows the connection, Inputs a temple bell, Settings a marigold, and the first Home of the day gets a petal shower. `dussehra` and `diwali` have built-in greetings |
 | `festival_until` | `YYYY-MM-DD` | Last day the festive skin shows; it switches itself off after that. A malformed date turns it off |
 | `greeting` | string | Replaces the time-of-day greeting while the festive skin is on |
@@ -66,7 +78,11 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `settings_key_keycodes` | list of keycodes | Remote buttons that open Settings, for `HomeKeyService` (TCL Google TV gear: `[83]`) |
 | `settings_key_panel` | bool | The remote's Settings button opens Home's glass quick settings (`true`, the default) or the TV's own Settings (`false`) |
 | `input_key_keycodes` | list of keycodes | More remote buttons that open the input switcher, for `InputKeyService` (`KEYCODE_TV` and `KEYCODE_TV_INPUT` always do) |
-| `app_keys` | list of strings | Remote buttons that open an app, as `"190:com.google.android.youtube.tv"` or `"KEYCODE_BUTTON_3:com.google.android.youtube.tv"`, for `InputKeyService` or `HomeKeyService` |
+| `app_keys` | list of strings | Remote buttons that open an app, as `"190:com.google.android.youtube.tv"` or `"KEYCODE_BUTTON_3:com.google.android.youtube.tv"`, or by scancode as `"scan:490:com.wbd.hbomax"` for remotes that share one keycode between app buttons (Sony BRAVIA), for `InputKeyService` or `HomeKeyService` |
+| `race_calendar` | list of races | F1 race-weekend mode: from 12 hours before a weekend's first session until 4 hours after the race starts, a panel under the clock shows the next session with a countdown (or the live one) and the weekend's session times in the TV's time zone. Write it with `tools/race_calendar.py <theme folder>`, which fetches the season from the free Jolpica API; the launcher itself never goes online |
+| `home_idle_clock_minutes` | 0 to 1440 | Minutes Home may sit untouched before it shows the clock screensaver (a thin clock and date drifting over a slow glow, as the system "Clock" screensaver does). Any key returns to Home. It starts only from Home, never over Live TV or an app; 0 is off (default) |
+| `cinematic_home` | bool | Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its colour, with a larger name, "Last opened" (apps opened from Home), dock position dots, a focus glow in the app's colour and a translucent dock band; off by default |
+| `ambient_glow` | bool | The glow behind the dock in the focused app's colour (`true` by default); `false` keeps only `background_color` or the wallpaper, e.g. for a calm photo background |
 
 ## Firmware settings routes
 
@@ -123,8 +139,15 @@ it; a picture that is still over 4K (about 8.4 million pixels) after it is sampl
 For a wallpaper collection, place JPEG, PNG or WebP files in the theme’s `wallpapers/` folder beside `config.json`, then set:
 
 ```json
-{ "wallpaper": true, "wallpaper_rotation_minutes": 30, "wallpaper_dim": 40 }
+{ "wallpaper": true, "wallpaper_rotation_minutes": 30, "wallpaper_dim": 40, "wallpaper_order": "sequential" }
 ```
+
+The last displayed picture is remembered on the TV, so a restart or reboot resumes from it rather than
+starting over at the first image in `sequential` mode. Missing an interval while the TV is asleep or
+unplugged does not replay the missed pictures: Home moves on at most once when it wakes. Replacing the
+collection starts playback from the new collection's first picture. A collection with one picture is
+shown once and never blanked on a timer. Images are centre-cropped to fill the 16:9 screen; dimming is
+drawn as a black overlay above the picture and below the launcher's text.
 
 When you apply a theme, its collection replaces the one already on the TV. Use filenames containing
 only letters, digits, underscores, dots and hyphens. Images can come from any source; check that you
@@ -138,6 +161,10 @@ change time survive app/process restarts. Rotation runs only while Home is visib
 another app, an overdue background changes then. Images are decoded on a worker thread and bounded
 to the screen size. There is no download service, Internet permission or computer-side scheduler.
 The original system idle screensaver is left unchanged.
+
+On the TV, Launcher settings has a Wallpaper row: pick one picture from the collection (or the theme's
+`wallpaper.jpg`), or None. A pick shows that one picture and stops the rotation until you choose Theme
+default, press Follow theme, or push a theme again.
 
 ## Reduced motion
 
@@ -168,3 +195,13 @@ the plain background; the default is off (the reference launcher looks exactly a
 Open a PR with a new folder here, a one-line row in the table above and a screenshot from a real TV
 in the PR description. Keep the dock list generic (the big streaming apps) unless the theme is for a
 specific TV, and say which TV you tried it on.
+
+### This fork's on-TV choices
+
+Launcher settings retains **Theme / Aurora / Off**. When a theme provides `wallpaper.jpg` or a
+`wallpapers/` collection, the same glass row also offers each picture by filename. Choosing one pins
+it; Theme resumes the theme's rotation. Follow theme clears these overrides, including rows below
+the dock, without removing saved app order, folders or App Library selections.
+
+The stock upstream `dock_row`, `fill_dock` and `reorder_button` switches are intentionally unsupported:
+this branch owns its glass dock and folder layout, and Move remains on each tile's menu.

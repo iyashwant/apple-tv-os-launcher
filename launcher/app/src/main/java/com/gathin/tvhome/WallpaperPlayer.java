@@ -40,6 +40,8 @@ final class WallpaperPlayer {
     /** Launcher settings chose Aurora: one bundled picture, no rotation. */
     private final boolean aurora;
     private final long interval;
+    private final String order;
+    private final Bitmap.Config bitmapConfig;
     private final SharedPreferences preferences;
     private final ExecutorService decoder = Executors.newSingleThreadExecutor();
     private final Random random = new Random();
@@ -59,7 +61,15 @@ final class WallpaperPlayer {
         aurora = Config.WALLPAPER_AURORA.equals(config.wallpaperChoice);
         files = aurora ? new ArrayList<>() : new ArrayList<>(config.wallpapers);
         interval = config.wallpaperRotationMinutes * 60_000L;
+        order = config.wallpaperOrder;
+        bitmapConfig = config.wallpaperTrueColor ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
         preferences = context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE);
+        // Aurora and Off must not discard the rotating theme's saved position.
+        if (!files.isEmpty()) {
+            String collection = collectionKey(files);
+            if (!collection.equals(preferences.getString("collection", "")))
+                preferences.edit().putString("collection", collection).remove("image").remove("changed").apply();
+        }
         DisplayMetrics metrics = resources.getDisplayMetrics();
         width = metrics.widthPixels;
         height = metrics.heightPixels;
@@ -82,7 +92,7 @@ final class WallpaperPlayer {
         } else {
             String previous = preferences.getString("image", "");
             firstFile = WallpaperRotation.find(files, previous);
-            if (firstFile == null) firstFile = WallpaperRotation.pick(files, previous, random);
+            if (firstFile == null) firstFile = WallpaperRotation.pick(files, previous, order, random);
             File opening = firstFile;
             first = CompletableFuture.supplyAsync(() -> decode(opening), decoder);
         }
@@ -134,7 +144,7 @@ final class WallpaperPlayer {
         File selected = WallpaperRotation.find(files, previous);
         long changed = preferences.getLong("changed", 0);
         if (selected == null || WallpaperRotation.due(changed, System.currentTimeMillis(), interval)) {
-            selected = WallpaperRotation.pick(files, previous, random);
+            selected = WallpaperRotation.pick(files, previous, order, random);
         }
         if (selected == null || selected.getName().equals(displayed)) return;
         File next = selected;
@@ -209,7 +219,7 @@ final class WallpaperPlayer {
             opts.inSampleSize = sample;
             // The bundled 720p gradient needs full colour to avoid bands; it still uses less memory
             // than a 1080p RGB_565 theme picture. External pictures retain the low-memory decode.
-            opts.inPreferredConfig = file == null ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
+            opts.inPreferredConfig = file == null ? Bitmap.Config.ARGB_8888 : bitmapConfig;
             Bitmap bmp;
             try (InputStream in = open(file)) {
                 @SuppressWarnings("deprecation")   // newInstance(InputStream) is API 31
@@ -240,5 +250,11 @@ final class WallpaperPlayer {
             // A bad or huge picture must never take the home screen down; the plain colour stays.
             return null;
         }
+    }
+
+    private static String collectionKey(List<File> images) {
+        StringBuilder key = new StringBuilder();
+        for (File file : images) key.append(file.getName()).append(':').append(file.length()).append(';');
+        return key.toString();
     }
 }

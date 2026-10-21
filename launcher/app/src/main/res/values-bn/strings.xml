@@ -5,7 +5,7 @@
     <string name="wifi">ওয়াই-ফাই</string>
     <string name="settings">সেটিংস</string>
     <string name="choose_input">ইনপুট</string>
-    <string name="connected">সংযুক্ত</string>
+    <string name="connected">কানেক্টেড</string>
     <string name="standby">স্ট্যান্ডবাই</string>
     <string name="not_connected">কোনো ডিভাইস নেই</string>
     <string name="live_tv">লাইভ টিভি</string>
@@ -16,7 +16,7 @@
     <string name="good_night">শুভ রাত্রি</string>
     <string name="ethernet">ইথারনেট</string>
     <string name="offline">অফলাইন</string>
-    <string name="not_available">এই টিভিতে উপলব্ধ নয়</string>
+    <string name="not_available">এই টিভিতে এভাইলেবল নেই</string>
     <string name="cant_open">%1$s খোলা যাচ্ছে না</string>
     <!-- "মঙ্গলবার, ২০ অক্টোবর"; Android writes the numbers in Bangla digits. -->
     <string name="date_format">EEEE, d MMMM</string>
@@ -31,9 +31,9 @@
     <string name="launcher_settings">লঞ্চার সেটিংস</string>
     <string name="columns_label">প্রতি সারিতে অ্যাপ</string>
     <string name="animations_state">অ্যানিমেশন: %1$s</string>
-    <string name="advanced_effects">উন্নত ইফেক্ট</string>
-    <string name="advanced_effects_state">উন্নত ইফেক্ট: %1$s</string>
-    <string name="advanced_effects_warning">টাইল উঁচু হয়ে ওঠা, আইকন জুম এবং মসৃণ রঙ পরিবর্তন যোগ করে। মেমরি বেশি লাগতে পারে; আসল পার্থক্য আপনার টিভির ওপর নির্ভর করে।</string>
+    <string name="advanced_effects">এডভান্স ইফেক্টস</string>
+    <string name="advanced_effects_state">এডভান্স ইফেক্টস: %1$s</string>
+    <string name="advanced_effects_warning">এতে টাইল একটু উপরে উঠে আসে, আইকন জুম হয় এবং কালার স্মুথভাবে বদলায়। মেমরি বেশি লাগতে পারে; কতটা পার্থক্য হবে তা আপনার টিভির উপর নির্ভর করে।</string>
     <string name="follow_theme">থিম অনুসরণ করুন (টিভিতে করা পছন্দ মুছে দিন)</string>
     <string name="follow_theme_hint">বর্তমান থিম বা বিল্ট-ইন লেআউট ও মোশন সেটিংস ব্যবহার করে। থিম পাঠালে বা রিসেট করলেও টিভিতে করা আপনার পছন্দ মুছে যায়।</string>
     <string name="tv_settings">টিভির সিস্টেম সেটিংস</string>
@@ -80,4 +80,5 @@
         <item quantity="other">%1$dটি অ্যাপ</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+
 </resources>

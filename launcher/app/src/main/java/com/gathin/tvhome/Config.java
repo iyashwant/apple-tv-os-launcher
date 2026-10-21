@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.Color;
+import android.os.Environment;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -11,12 +12,15 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +38,8 @@ final class Config {
     static final String FILE_NAME = "config.json";
     static final String WALLPAPER_NAME = "wallpaper.jpg";
     static final String SETTINGS_NAME = "launcher_settings";
+    static final String ROWS_BELOW_DOCK_KEY = "rows_below_dock";
+    static final String WALLPAPER_CHOICE_KEY = "wallpaper_choice";
     static final String WALLPAPER_THEME = "theme";
     static final String WALLPAPER_AURORA = "aurora";
     static final String WALLPAPER_OFF = "off";
@@ -95,6 +101,21 @@ final class Config {
     /** Festive skin from a theme (festival, festival_until, greeting, accent_color); {@link Festival#NONE} if none. */
     final Festival festival;
 
+    final boolean showNetworkPill;
+    final boolean iconOnlyButtons;
+    final boolean libraryButton;
+    final int wifiLabelWidth;
+    final boolean alwaysShowNames;
+    final boolean wallpaperTrueColor;
+    final boolean cinematicHome;
+    final boolean ambientGlow;
+    final int homeIdleClockMinutes;
+    final String wallpaperOrder;
+    final List<RaceWeekend.Race> raceCalendar;
+    final Map<String, String> launchActions;
+    final Map<String, String> appLabels;
+    final Map<String, String> appBanners;
+
     private Config(List<String> dockApps, List<String> hiddenApps, String liveTvPackage,
                    String liveTvAction, String sourcePanelService, String sourcePanelAction, String inputAction,
                    int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
@@ -104,7 +125,11 @@ final class Config {
                    int[] settingsKeycodes, boolean settingsKeyPanel, int[] inputKeycodes, List<String> appKeys,
                    boolean wallpaperEnabled, File wallpaper, List<File> wallpapers, int wallpaperRotationMinutes,
                    int wallpaperDim, String wallpaperChoice, boolean overlayApplied, Festival festival,
-                   Map<String, String> settingsRoutes) {
+                   Map<String, String> settingsRoutes,
+                   boolean showNetworkPill, boolean iconOnlyButtons, boolean libraryButton, int wifiLabelWidth,
+                   boolean alwaysShowNames, boolean wallpaperTrueColor, boolean cinematicHome, boolean ambientGlow,
+                   int homeIdleClockMinutes, String wallpaperOrder, List<RaceWeekend.Race> raceCalendar,
+                   Map<String, String> launchActions, Map<String, String> appLabels, Map<String, String> appBanners) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
         this.liveTvPackage = liveTvPackage;
@@ -113,6 +138,21 @@ final class Config {
         this.sourcePanelAction = sourcePanelAction;
         this.inputAction = inputAction;
         this.settingsRoutes = settingsRoutes;
+        this.showNetworkPill = showNetworkPill;
+        this.iconOnlyButtons = iconOnlyButtons;
+        this.libraryButton = libraryButton;
+        this.wifiLabelWidth = wifiLabelWidth;
+        this.alwaysShowNames = alwaysShowNames;
+        this.wallpaperTrueColor = wallpaperTrueColor;
+        this.cinematicHome = cinematicHome;
+        this.ambientGlow = ambientGlow;
+        this.homeIdleClockMinutes = homeIdleClockMinutes;
+        this.wallpaperOrder = wallpaperOrder;
+        this.raceCalendar = Collections.unmodifiableList(raceCalendar);
+        this.launchActions = Collections.unmodifiableMap(launchActions);
+        this.appLabels = Collections.unmodifiableMap(appLabels);
+        this.appBanners = Collections.unmodifiableMap(appBanners);
+
         this.columns = columns;
         this.rowsBelowDock = rowsBelowDock;
         this.animations = animations;
@@ -177,11 +217,24 @@ final class Config {
         boolean settingsKeyPanel = res.getBoolean(R.bool.settings_key_panel);
         int[] inputKeycodes = res.getIntArray(R.array.input_key_keycodes);
         List<String> appKeys = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.app_keys)));
+        boolean showNetworkPill = res.getBoolean(R.bool.show_network_pill);
+        boolean iconOnlyButtons = res.getBoolean(R.bool.icon_only_buttons);
+        boolean libraryButton = res.getBoolean(R.bool.library_button);
+        int wifiLabelWidth = res.getInteger(R.integer.wifi_label_width);
+        boolean alwaysShowNames = res.getBoolean(R.bool.always_show_names);
+        boolean wallpaperTrueColor = res.getBoolean(R.bool.wallpaper_true_color);
+        boolean cinematicHome = res.getBoolean(R.bool.cinematic_home);
+        boolean ambientGlow = res.getBoolean(R.bool.ambient_glow);
+        int homeIdleClockMinutes = res.getInteger(R.integer.home_idle_clock_minutes);
+        List<String> launchActions = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.launch_actions)));
+        List<String> appLabels = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.app_labels)));
+        List<String> appBanners = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.app_banners)));
         boolean applied = false;
 
         File dir = dir(ctx);
         File file = dir != null ? new File(dir, FILE_NAME) : null;
-        JSONObject json = read(file);
+        boolean mounted = Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState());
+        JSONObject json = readOverlay(ctx, file, mounted);
         if (json != null) {
             applied = true;
             dock = stringList(json, "dock_apps", dock);
@@ -211,11 +264,27 @@ final class Config {
             settingsKeyPanel = bool(json, "settings_key_panel", settingsKeyPanel);
             inputKeycodes = intArray(json, "input_key_keycodes", inputKeycodes);
             appKeys = stringList(json, "app_keys", appKeys);
+            showNetworkPill = bool(json, "show_network_pill", showNetworkPill);
+            iconOnlyButtons = bool(json, "icon_only_buttons", iconOnlyButtons);
+            libraryButton = bool(json, "library_button", libraryButton);
+            alwaysShowNames = bool(json, "always_show_names", alwaysShowNames);
+            wallpaperTrueColor = bool(json, "wallpaper_true_color", wallpaperTrueColor);
+            cinematicHome = bool(json, "cinematic_home", cinematicHome);
+            ambientGlow = bool(json, "ambient_glow", ambientGlow);
+            wifiLabelWidth = integer(json, "wifi_label_width", wifiLabelWidth, 0, 300);
+            homeIdleClockMinutes = integer(json, "home_idle_clock_minutes", homeIdleClockMinutes, 0, 1440);
+            launchActions = stringList(json, "launch_actions", launchActions);
+            appLabels = stringList(json, "app_labels", appLabels);
+            appBanners = stringList(json, "app_banners", appBanners);
+
         }
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
         // current theme without clearing choices from an older launcher version.
         SharedPreferences choices = ctx.getSharedPreferences(SETTINGS_NAME, Context.MODE_PRIVATE);
-        syncThemeChoices(choices, dir, file);
+        // Do not mistake storage still mounting at boot for a theme reset.
+        if (mounted) syncThemeChoices(choices, dir, file);
+        int chosenRows = choices.getInt(ROWS_BELOW_DOCK_KEY, rowsBelow);
+        if (chosenRows >= 0 && chosenRows <= 3) rowsBelow = chosenRows;
         int chosenColumns = choices.getInt("columns", columns);
         if (chosenColumns >= 4 && chosenColumns <= 7) columns = chosenColumns;
         animations = choices.getBoolean("animations", animations);
@@ -223,25 +292,37 @@ final class Config {
         navigationSounds = choices.getBoolean("navigation_sounds", navigationSounds);
         library = choices.getBoolean("app_library", library);
         showStats = choices.getBoolean("show_stats", showStats);
-        String wallpaperChoice = choices.getString("wallpaper_choice", WALLPAPER_THEME);
-        if (!WALLPAPER_AURORA.equals(wallpaperChoice) && !WALLPAPER_OFF.equals(wallpaperChoice))
-            wallpaperChoice = WALLPAPER_THEME;
+        String wallpaperChoice = choices.getString(WALLPAPER_CHOICE_KEY, WALLPAPER_THEME);
+        if ("none".equals(wallpaperChoice)) wallpaperChoice = WALLPAPER_OFF;
         File wallpaper = dir != null ? new File(dir, WALLPAPER_NAME) : null;
         if (wallpaper != null && !(wallpaper.isFile() && wallpaper.length() > 0)) wallpaper = null;
-        // A theme can also switch the wallpaper off while the file is still there.
         boolean wallpaperEnabled = json == null || bool(json, "wallpaper", true);
-        if (!wallpaperEnabled) wallpaper = null;
         int rotationMinutes = json == null ? 0 : integer(json, "wallpaper_rotation_minutes", 0, 0, 1440);
         int wallpaperDim = json == null ? 0 : integer(json, "wallpaper_dim", 0, 0, 90);
+        String wallpaperOrder = json == null ? WallpaperRotation.ORDER_SHUFFLE
+                : string(json, "wallpaper_order", WallpaperRotation.ORDER_SHUFFLE);
+        if (!WallpaperRotation.validOrder(wallpaperOrder)) wallpaperOrder = WallpaperRotation.ORDER_SHUFFLE;
         List<File> wallpapers = new ArrayList<>();
-        // The theme's pictures only while Launcher settings follows the theme: Aurora and Off replace them.
+        // Keep Theme / Aurora / Off choices from this fork. A collection filename pins one external picture.
+        if (!WALLPAPER_THEME.equals(wallpaperChoice) && !WALLPAPER_AURORA.equals(wallpaperChoice)
+                && !WALLPAPER_OFF.equals(wallpaperChoice)) {
+            File picked = WallpaperRotation.find(WallpaperRotation.images(
+                    dir == null ? null : new File(dir, "wallpapers")), wallpaperChoice);
+            if (picked == null && wallpaper != null && wallpaper.getName().equals(wallpaperChoice)) picked = wallpaper;
+            if (picked != null) {
+                wallpaper = picked;
+                wallpaperEnabled = true;
+                wallpapers.add(picked);
+            } else wallpaperChoice = WALLPAPER_THEME;
+        }
         if (WALLPAPER_THEME.equals(wallpaperChoice)) {
-            if (rotationMinutes > 0 && dir != null && wallpaperEnabled) {
+            if (!wallpaperEnabled) wallpaper = null;
+            if (rotationMinutes > 0 && dir != null && wallpaperEnabled)
                 wallpapers.addAll(WallpaperRotation.images(new File(dir, "wallpapers")));
-            }
             if (wallpapers.isEmpty() && wallpaper != null) wallpapers.add(wallpaper);
-        } else {
+        } else if (WALLPAPER_AURORA.equals(wallpaperChoice) || WALLPAPER_OFF.equals(wallpaperChoice)) {
             wallpaper = null;
+            wallpaperEnabled = WALLPAPER_AURORA.equals(wallpaperChoice);
         }
         // A festive skin comes only from a theme; config.xml has no festival.
         Festival festival = json == null ? Festival.NONE : Festival.parse(string(json, "festival", ""),
@@ -253,7 +334,11 @@ final class Config {
                 showStats, library, background, Math.max(0, Math.min(100, skyIntensity)),
                 settingsKeycodes, settingsKeyPanel, inputKeycodes, appKeys,
                 wallpaperEnabled, wallpaper, wallpapers, rotationMinutes, wallpaperDim, wallpaperChoice, applied,
-                festival, settingsRoutes(res, json));
+                festival, settingsRoutes(res, json),
+                showNetworkPill, iconOnlyButtons, libraryButton, wifiLabelWidth, alwaysShowNames, wallpaperTrueColor,
+                cinematicHome, ambientGlow, homeIdleClockMinutes, wallpaperOrder,
+                json == null ? Collections.emptyList() : raceCalendar(json),
+                packageMap(launchActions), packageMap(appLabels), packageMap(appBanners));
     }
 
     private static Map<String, String> settingsRoutes(Resources res, JSONObject overlay) {
@@ -283,11 +368,11 @@ final class Config {
             SharedPreferences.Editor editor = choices.edit();
             if (!"absent".equals(token)) editor.remove("columns").remove("animations")
                     .remove("advanced_effects").remove("navigation_sounds").remove("wallpaper_choice")
-                    .remove("app_library").remove("show_stats");
+                    .remove("app_library").remove("show_stats").remove(ROWS_BELOW_DOCK_KEY);
             editor.putString(THEME_SIGNATURE_KEY, signature).commit();
         } else if (!seen.equals(signature)) {
             choices.edit().remove("columns").remove("animations").remove("advanced_effects")
-                    .remove("navigation_sounds").remove("wallpaper_choice").remove("app_library").remove("show_stats")
+                    .remove("navigation_sounds").remove("wallpaper_choice").remove("app_library").remove("show_stats").remove(ROWS_BELOW_DOCK_KEY)
                     .putString(THEME_SIGNATURE_KEY, signature).commit();
         }
     }
@@ -378,6 +463,58 @@ final class Config {
         for (int i = 0; i < a.length(); i++) {
             Object item = a.opt(i);
             if (item instanceof String && !((String) item).trim().isEmpty()) out.add(((String) item).trim());
+        }
+        return out;
+    }
+
+    private static JSONObject readOverlay(Context ctx, File file, boolean mounted) {
+        File copy = new File(ctx.getFilesDir(), FILE_NAME);
+        if (!mounted) return read(copy);
+        JSONObject json = read(file);
+        if (json == null) {
+            copy.delete();
+        } else {
+            try (FileOutputStream out = new FileOutputStream(copy)) {
+                out.write(json.toString().getBytes(StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                Log.w(TAG, "could not keep a copy of " + file + ": " + e.getMessage());
+            }
+        }
+        return json;
+    }
+
+    private static List<RaceWeekend.Race> raceCalendar(JSONObject json) {
+        List<RaceWeekend.Race> races = new ArrayList<>();
+        JSONArray list = json.optJSONArray("race_calendar");
+        if (list == null) return races;
+        for (int i = 0; i < list.length(); i++) {
+            JSONObject r = list.optJSONObject(i);
+            JSONArray sessions = r == null ? null : r.optJSONArray("sessions");
+            if (sessions == null) continue;
+            List<RaceWeekend.Session> parsed = new ArrayList<>();
+            for (int j = 0; j < sessions.length(); j++) {
+                JSONObject s = sessions.optJSONObject(j);
+                if (s == null) continue;
+                String name = s.optString("name", "").trim();
+                try {
+                    if (!name.isEmpty()) parsed.add(new RaceWeekend.Session(name, java.time.Instant.parse(s.optString("start", ""))));
+                } catch (java.time.format.DateTimeParseException ignored) {
+                    // a session without a readable start time cannot be counted down
+                }
+            }
+            if (!parsed.isEmpty()) races.add(new RaceWeekend.Race(r.optInt("round", 0),
+                    r.optString("name", "Grand Prix").trim(), r.optString("place", "").trim(), parsed));
+        }
+        return races;
+    }
+
+    static Map<String, String> packageMap(List<String> entries) {
+        Map<String, String> out = new HashMap<>();
+        for (String entry : entries) {
+            int eq = entry.indexOf('=');
+            if (eq <= 0) continue;
+            String pkg = entry.substring(0, eq).trim(), value = entry.substring(eq + 1).trim();
+            if (!pkg.isEmpty() && !value.isEmpty()) out.put(pkg, value);
         }
         return out;
     }

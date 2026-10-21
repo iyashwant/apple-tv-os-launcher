@@ -12,6 +12,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Outline;
+import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -141,6 +142,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final Context ctx;
     private final TileListener listener;
     private final int dockSize;
+    private final float restNameAlpha;
+    private final boolean cinematic;
+    private final Map<String, String> launchActions, appLabels, appBanners;
     /** Dock order (config.xml dock_apps, or a theme's config.json). */
     private final List<String> favourites;
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
@@ -191,6 +195,11 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         listener = source.listener;
         layoutStore = source.layoutStore;
         dockSize = source.dockSize;
+        restNameAlpha = source.restNameAlpha;
+        cinematic = source.cinematic;
+        launchActions = source.launchActions;
+        appLabels = source.appLabels;
+        appBanners = source.appBanners;
         favourites = source.favourites;
         hidden = source.hidden;
         showHomeSettings = source.showHomeSettings;
@@ -235,6 +244,11 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.columns = dockSize;
         this.listener = listener;
         this.dockSize = dockSize;
+        this.restNameAlpha = cfg.alwaysShowNames ? .75f : 0f;
+        this.cinematic = cfg.cinematicHome;
+        this.launchActions = cfg.launchActions;
+        this.appLabels = cfg.appLabels;
+        this.appBanners = cfg.appBanners;
         this.favourites = cfg.dockApps;
         this.hidden = new HashSet<>(cfg.hiddenApps);
         this.showHomeSettings = cfg.showHomeSettingsShortcut;
@@ -254,10 +268,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
      * Apps added from the App Library join as ordinary tiles, phone apps included; one taken off Home there
      * (or with Remove from Home) stays off until it is added again.
      */
-    void reload(List<Cards.Card> cards) {
+    void reload(List<Cards.Card> cards, List<ResolveInfo> leanback) {
         PackageManager pm = ctx.getPackageManager();
-        Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
-        List<ResolveInfo> found = new ArrayList<>(pm.queryIntentActivities(probe, 0));
+        List<ResolveInfo> found = new ArrayList<>(leanback);
         Set<String> tvPackages = new HashSet<>();
         for (ResolveInfo ri : found) if (ri.activityInfo != null) tvPackages.add(ri.activityInfo.packageName);
         leanbackPackages = tvPackages;
@@ -330,12 +343,14 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         String pkg = ri.activityInfo.packageName;
         ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
         String art = artKey(ri);
-        Drawable banner = previousBanners.containsKey(art) ? previousBanners.get(art) : loadBanner(pm, ri);
-        Drawable icon = ri.loadIcon(pm);
+        Drawable banner = bundledBanner(appBanners.get(pkg));
+        if (banner == null) banner = previousBanners.containsKey(art) ? previousBanners.get(art) : loadBanner(pm, ri);
+        // Spotify's custom glyph still needs its icon even if the app supplies a banner.
+        Drawable icon = banner == null || "com.spotify.tv.android".equals(pkg) ? ri.loadIcon(pm) : null;
         if (card != null) return new Entry(Entry.CARD, card.label, component, banner, icon, card.caption, card.accent);
         // Same cleaner as the card prompt: an app label with a bidi override or line separator must not
         // redraw the tile name as something else (#117).
-        return new Entry(Cards.cleanLabel(String.valueOf(ri.loadLabel(pm)), pkg), component, banner, icon);
+        return new Entry(Cards.cleanLabel(appLabels.containsKey(pkg) ? appLabels.get(pkg) : String.valueOf(ri.loadLabel(pm)), pkg), component, banner, icon);
     }
 
     /** The banners map's key: an update installs to a new path, and an app can name a different banner. */
@@ -400,7 +415,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         nameLp.width = w;
         nameLp.topMargin = h + Math.round(6 * density);
         name.setLayoutParams(nameLp);
-        return new Holder(v, listener, animations, advancedEffects, reducedMotion);
+        return new Holder(v, listener, animations, advancedEffects, reducedMotion, restNameAlpha);
     }
 
     @Override public void onViewAttachedToWindow(@NonNull RecyclerView.ViewHolder holder) {
@@ -441,7 +456,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             resizeTile(h, parent);
         }
         boolean glyphTile = "com.spotify.tv.android".equals(e.pkg) && e.icon != null;
-        int backdrop = glyphTile ? Holder.BACKDROP_GLYPH : isFolder(position) ? Holder.BACKDROP_GLASS : Holder.BACKDROP_TILE;
+        int backdrop = glyphTile ? Holder.BACKDROP_GLYPH : isFolder(position) ? Holder.BACKDROP_GLASS
+                : e.banner != null && e.banner.getOpacity() == PixelFormat.OPAQUE ? Holder.BACKDROP_NONE : Holder.BACKDROP_TILE;
         if (h.backdrop != backdrop) {
             // A rebind keeps the tile's background unless the kind of tile changed.
             h.backdrop = backdrop;
@@ -449,16 +465,16 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     : backdrop == Holder.BACKDROP_GLYPH ? new android.graphics.drawable.GradientDrawable(
                             android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
                             new int[]{0xFF242624, 0xFF101311})
-                    : ctx.getDrawable(R.drawable.tile_bg));
+                    : backdrop == Holder.BACKDROP_NONE ? null : ctx.getDrawable(R.drawable.tile_bg));
         }
         h.name.setText(e.name);
-        h.name.setVisibility(e.label.isEmpty() || (activeFolder == null && position < dockSize) || movingKey != null ? View.INVISIBLE : View.VISIBLE);
+        h.name.setVisibility(e.label.isEmpty() || (restNameAlpha == 0f && activeFolder == null && position < dockSize) || movingKey != null ? View.INVISIBLE : View.VISIBLE);
         // Keep captions quiet during rearrangement; the lifted app and direction handles show selection.
         h.card.setActivated(e.key.equals(movingKey)
                 || e.key.equals(menuKey));
         boolean focused = h.card.isFocused() || h.card.isActivated();   // a rebind after reload() can hit the focused tile
         h.name.animate().cancel();
-        h.name.setAlpha(focused ? 1f : 0f);
+        h.name.setAlpha(focused ? 1f : restNameAlpha);
         h.card.animate().cancel();
         h.banner.animate().cancel();
         h.card.setScaleX(focused ? FOCUS_SCALE : 1f);
@@ -578,8 +594,15 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         // TV apps launch with the same leanback intent as from the stock launcher or the remote, so an app
         // already running resumes instead of restarting; only phone apps added from the library use plain MAIN.
         if (leanbackPackages.contains(e.pkg)) i.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+        String action = launchActions.get(e.pkg);
+        if (action != null) {
+            Intent byAction = new Intent(action).setPackage(e.pkg)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+            if (ctx.getPackageManager().resolveActivity(byAction, 0) != null) i = byAction;
+        }
         try {
             ctx.startActivity(i);
+            if (cinematic) LastOpened.record(ctx, e.pkg);
             if (advancedEffects && ctx instanceof Activity)
                 ((Activity) ctx).overridePendingTransition(R.anim.app_open_enter, R.anim.app_open_exit);
         } catch (Exception ex) {
@@ -738,7 +761,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     static final class Holder extends RecyclerView.ViewHolder {
-        static final int BACKDROP_TILE = 0, BACKDROP_GLASS = 1, BACKDROP_GLYPH = 2;
+        static final int BACKDROP_TILE = 0, BACKDROP_GLASS = 1, BACKDROP_GLYPH = 2, BACKDROP_NONE = 3;
         /** Which background the card has now; -1 until the first bind. */
         int backdrop = -1;
         final View card;
@@ -747,9 +770,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         final TextView label;
         final TextView name;
         final boolean animations, advancedEffects, reducedMotion;
+        final float restNameAlpha;
         boolean suppressConfirmRelease;
 
-        Holder(View v, TileListener listener, boolean animations, boolean advancedEffects, boolean reducedMotion) {
+        Holder(View v, TileListener listener, boolean animations, boolean advancedEffects, boolean reducedMotion, float restNameAlpha) {
             super(v);
             card = v.findViewById(R.id.card);
             // The launcher draws its own app-colour focus light; avoid a platform fill behind glass.
@@ -761,6 +785,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             this.animations = animations;
             this.advancedEffects = advancedEffects;
             this.reducedMotion = reducedMotion;
+            this.restNameAlpha = restNameAlpha;
 
             final float density = v.getResources().getDisplayMetrics().density;
             card.setOutlineProvider(new ViewOutlineProvider() {
@@ -820,7 +845,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     view.setTranslationZ(depth);
                     banner.setScaleX(zoomArt);
                     banner.setScaleY(zoomArt);
-                    name.setAlpha(focused ? 1f : 0f);
+                    name.setAlpha(focused ? 1f : restNameAlpha);
                     name.setTranslationY(focused ? density * 4f : -density * 6f);
                     if (listener != null && view.isFocused()) listener.onTileFocusFrame(view);
                 } else {
@@ -835,7 +860,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                         zoom.setDuration(focused ? 120 : 80)
                                 .setInterpolator(new DecelerateInterpolator())
                                 .start();
-                        name.animate().alpha(focused ? 1f : 0f).setDuration(100).start();
+                        name.animate().alpha(focused ? 1f : restNameAlpha).setDuration(100).start();
                         // Same place as the full motion's slide ends: the layout's -6dp is only its starting point,
                         // and left there the name overlaps the zoomed tile. Only on focus: snapping it back to -6dp
                         // while it fades out would jump it up over the tile.
@@ -845,7 +870,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                         zoom.setDuration(advancedEffects ? (focused ? 220 : 170) : (focused ? 260 : 180))
                                 .setInterpolator(new OvershootInterpolator(focused ? (advancedEffects ? 0.7f : 1.6f) : 0f))
                                 .start();
-                        name.animate().alpha(focused ? 1f : 0f)
+                        name.animate().alpha(focused ? 1f : restNameAlpha)
                                 .translationY(focused ? density * 4f : -density * 6f)
                                 .setDuration(220).start();
                     }
@@ -858,5 +883,27 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 }
             });
         }
+    }
+
+    private Drawable bundledBanner(String name) {
+        if (name == null || !name.startsWith("banner_")) return null;
+        int id = ctx.getResources().getIdentifier(name, "drawable", ctx.getPackageName());
+        return id != 0 ? ctx.getDrawable(id) : null;
+    }
+
+
+
+    Drawable artworkAt(int position) {
+        if (position < 0 || position >= items.size()) return null;
+        Entry e = items.get(position);
+        return e.banner != null ? e.banner : e.icon;
+    }
+
+    /** Release artwork while hidden without changing persisted folder or app order. */
+    void clear() {
+        items.clear();
+        inventory.clear();
+        banners.clear();
+        notifyDataSetChanged();
     }
 }

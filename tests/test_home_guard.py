@@ -54,7 +54,7 @@ def answer(command):
     if command.startswith("cmd package query-activities"):
         if state["claims_fail"]:
             sys.exit(1)
-        return "".join(f"  {name}/.MainActivity\n" for name in state["claims"])
+        return "".join(f"  {c if '/' in c else c + '/.MainActivity'}\n" for c in state["claims"])
     if command.startswith("cmd package resolve-activity"):
         if state["home_fails"]:
             sys.exit(1)
@@ -203,6 +203,21 @@ class HomeGuardTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, self.output(result))
                 self.assertNotIn(f"pm disable-user --user 0 {STOCK}", sent,
                                  "the setup wizard is not a launcher to fall back on")
+                self.assertIn(f"Skipping {STOCK}", self.output(result))
+
+    def test_a_vendor_fallback_home_does_not_count_as_another_home(self):
+        # Android TV sets register a FallbackHome activity so the firmware has something to show when
+        # no launcher is enabled. It answers category.HOME, but it is not a home the viewer can use.
+        # Verified on a TCL BeyondTV2 (Android TV 9): com.tcl.keycustomfunctionservice/.FallbackHome
+        # and com.android.tv.settings/.system.FallbackHome both answer HOME.
+        for entry in self.entries():
+            with self.subTest(entry=entry):
+                self.tv(claims=[STOCK, "com.tcl.keycustomfunctionservice/.FallbackHome",
+                                "com.android.tv.settings/.system.FallbackHome"])
+                result, sent = self.disable(entry)
+                self.assertEqual(result.returncode, 0, self.output(result))
+                self.assertNotIn(f"pm disable-user --user 0 {STOCK}", sent,
+                                 "a vendor fallback is not a launcher to fall back on")
                 self.assertIn(f"Skipping {STOCK}", self.output(result))
 
     def test_a_tv_that_cannot_list_its_homes_is_left_with_one(self):
