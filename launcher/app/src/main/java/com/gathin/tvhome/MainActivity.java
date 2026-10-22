@@ -120,6 +120,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private View btnLibraryTop;
     private boolean libraryFromTopBar;
     private long idleClockMs;
+    private ContinueWatchingView continueShelf;
+    private boolean continueEnabled, restoreContinueFocus;
     private Map<Integer, String> mappedAppKeys = Collections.emptyMap(), mappedAppScancodes = Collections.emptyMap();
     private final Runnable showIdleClock = this::openIdleClock;
     private final BroadcastReceiver timeReceiver = new BroadcastReceiver() {
@@ -358,6 +360,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sourcePanelAction = cfg.sourcePanelAction;
 
         root = findViewById(R.id.root);
+        continueEnabled = cfg.continueWatching;
+        continueShelf = findViewById(R.id.continueWatching);
+        continueShelf.bind(new ContinueWatchingView.Host() {
+            @Override public void changed() {
+                if (paused || homeGrid == null) return;
+                updateGridPadding(); alignFocusedTile();
+            }
+            @Override public void focused() {
+                focusRequest++; requestedFocusKey = null; hideGlass(); hideHero();
+            }
+            @Override public void leave(int keyCode) {
+                if (paused || adapter != homeAdapter) return;
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                    focusRequest++; requestedFocusKey = null; firstTopButton().requestFocusFromTouch();
+                } else focusTile(Math.min(lastFocused, COLUMNS - 1));
+            }
+        }, cfg);
         root.setFocusableInTouchMode(true);
         topBar = findViewById(R.id.topBar);
         gridHost = findViewById(R.id.gridHost);
@@ -599,6 +618,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean keepHeader = onlyPaused && (focused == btnInputs || focused == btnWifi || focused == btnLibraryTop || focused == btnSettings);
         onlyPaused = false;
         paused = false;
+        continueShelf.start(continueEnabled);
         tilesReady = false;
         promptsPaused = false;
         glassShown = false;
@@ -642,7 +662,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         // Return to the app we left from, or the same slot if that app is gone. Always refocus: after
         // reload() the view that holds focus may no longer show the app it had.
-        if (!keepHeader) {
+        if (restoreContinueFocus && !expanded && adapter == homeAdapter && continueShelf.hasItems()) {
+            continueShelf.post(continueShelf::focusRemembered);
+        } else if (!keepHeader) {
             int pos = adapter.positionOf(returnKey);
             focusTile(pos >= 0 ? pos : returnSlot);
         }
@@ -715,6 +737,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         paused = true;
+        restoreContinueFocus = continueShelf.hasFocus();
+        continueShelf.stop();
         root.removeCallbacks(showIdleClock);
         cancelGridTransition();
         folderMotion.cancel();
@@ -773,6 +797,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         handler.removeCallbacks(clockCheck);
         root.removeCallbacks(showIdleClock);
         wallpaperPlayer.close();
+        continueShelf.close();
         unregisterReceiver(packageChanges);
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
@@ -795,6 +820,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     public void onBackPressed() {
         if (folderMotion.isRunning() && adapter.activeFolder() == null) return;
         if (quickSettings != null) quickSettings.dismiss();
+        else if (continueShelf.hasFocus()) focusTile(lastFocused);
         else if (tileMenu != null) dismissTileMenu(true);
         else if (movingKey != null && !savingOrderNow) finishMove(false, true);
         else if (!savingOrderNow && adapter.activeFolder() != null) closeFolder();
@@ -808,6 +834,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (requestedFocusKey != null && !requestedFocusKey.equals(adapter.keyAt(position))) return;
         lastFocused = position;
         lastFocusedKey = adapter.keyAt(position);
+        continueShelf.setFocusedPackage(adapter == homeAdapter && !expanded && position < COLUMNS
+                && !homeAdapter.isFolder(position) ? homeAdapter.packageAt(position) : null);
         if (adapter == homeAdapter && !folderMotion.isRunning()) prepareFolder(lastFocusedKey);
         if (folderMotion.isRunning()) {
             // Let the panel own motion while entering or leaving a folder. A second tile zoom
@@ -872,7 +900,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             glass.setTranslationY(y);
         }
         onTileFocusFrame(card);
-        if (adapter.activeFolder() == null && !expanded && !gridTransition && position < COLUMNS)
+        if (continueShelf.isShown() && adapter == homeAdapter && !expanded) {
+            showGlowOnly(position);
+        } else if (adapter.activeFolder() == null && !expanded && !gridTransition && position < COLUMNS)
             showHero(position, r.top);
         else if (adapter.activeFolder() == null && !gridTransition && position < adapter.appCount()) showGlowOnly(position);
         else hideHero();
@@ -1124,6 +1154,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             focusRequest++;
             requestedFocusKey = null;
+            if (continueShelf.isShown() && continueShelf.focusRemembered()) { playNavigationSound(keyCode); return true; }
             if (firstTopButton().requestFocusFromTouch())
                 playNavigationSound(keyCode);
             return true;
@@ -1165,6 +1196,36 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             grid.setPadding(side, want, side, grid.getPaddingBottom());
         if (!gridTransition) gridHost.setTranslationY(adapter.activeFolder() == null && !expanded
                 ? collapsedGridOffset() : 0f);
+        updateContinuePresentation();
+    }
+
+    private boolean hasContinueWatching() { return continueEnabled && continueShelf != null && continueShelf.hasItems(); }
+
+    private void updateContinuePresentation() {
+        if (continueShelf == null || homeGridHost == null) return;
+        boolean shown = hasContinueWatching() && adapter == homeAdapter && !expanded;
+        // Continue Watching occupies the existing top-shelf space. Home's dock geometry never changes.
+        homeGridHost.setClipBounds(null);
+        if (shown) {
+            View first = homeGrid.getLayoutManager() == null ? null : homeGrid.getLayoutManager().findViewByPosition(0);
+            View card = first == null ? null : first.findViewById(R.id.card);
+            if (card == null) shown = false;
+            else {
+                int dockTop = Math.round(homeGridHost.getY() + homeGrid.getTop() + first.getTop() + card.getTop()) - dp(16);
+                Rect header = new Rect(0, 0, topBar.getWidth(), topBar.getHeight()); root.offsetDescendantRectToMyCoords(topBar, header);
+                int bottom = dockTop - dp(18), available = bottom - header.bottom - dp(20);
+                int height = Math.min(dp(ContinueWatchingView.HEIGHT_DP), available);
+                shown = height >= dp(142);
+                if (shown) {
+                    FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) continueShelf.getLayoutParams();
+                    int top = bottom - height;
+                    if (lp.topMargin != top || lp.height != height) { lp.gravity = Gravity.TOP; lp.topMargin = top; lp.height = height; continueShelf.setLayoutParams(lp); }
+                    hideHero();
+                }
+            }
+        }
+        // Focus changes fade in the existing top-shelf space; folders/grid transitions hide it immediately.
+        continueShelf.present(shown, !paused && adapter == homeAdapter && !expanded);
     }
 
     private float collapsedGridOffset() {
@@ -1196,6 +1257,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cancelGridTransition();
         expanded = value;
         gridTransition = true;
+        updateContinuePresentation();
         int transitionRequest = gridTransitionRequest;
         grid.stopScroll();
         hideHero();
@@ -1215,6 +1277,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         gridSlide.addUpdateListener(animation -> {
             if (transitionRequest != gridTransitionRequest || gridSlide != animation) return;
             gridHost.setTranslationY((Float) animation.getAnimatedValue());
+            updateContinuePresentation();
             if (unscrolled[0] != 0) {
                 int left = Math.round(scroll * (1f - animation.getAnimatedFraction()));
                 grid.scrollBy(0, unscrolled[0] - left);
@@ -1263,6 +1326,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cancelGridTransition();
         topBar.animate().cancel();
         boolean inFolder = adapter.activeFolder() != null;
+        updateContinuePresentation();
         homeGrid.setDescendantFocusability(inFolder ? ViewGroup.FOCUS_BLOCK_DESCENDANTS : ViewGroup.FOCUS_AFTER_DESCENDANTS);
         folderGrid.setDescendantFocusability(inFolder ? ViewGroup.FOCUS_AFTER_DESCENDANTS : ViewGroup.FOCUS_BLOCK_DESCENDANTS);
         folderGridHost.setVisibility(inFolder ? View.VISIBLE : View.INVISIBLE);
@@ -1345,6 +1409,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             } else homeGridHost.setVisibility(View.INVISIBLE);
             updateFolderTitle();
             alignFocusedTile();
+            updateGridPadding();
         });
     }
 
@@ -1490,7 +1555,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (event.getAction() != KeyEvent.ACTION_DOWN) return true;
         int code = event.getKeyCode();
         if (code == KeyEvent.KEYCODE_DPAD_DOWN) {
-            focusTile(Math.min(lastFocused, COLUMNS - 1));
+            if (!continueShelf.isShown() || !continueShelf.focusRemembered()) focusTile(Math.min(lastFocused, COLUMNS - 1));
             if (adapter.appCount() > 0) playNavigationSound(code);
         } else {
             focusRequest++;
@@ -1906,6 +1971,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (quickSettings != null)
             return quickSettings.dispatchKeyEvent(event) || super.dispatchKeyEvent(event);
+        if (continueShelf.hasFocus()) {
+            if (continueShelf.handle(event)) return true;
+            int key = event.getKeyCode();
+            if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER || key == KeyEvent.KEYCODE_BUTTON_A)
+                return super.dispatchKeyEvent(event);
+        }
         int code = event.getKeyCode();
         if (folderMotion.isRunning() && code != KeyEvent.KEYCODE_BACK
                 && (isConfirm(code) || code == KeyEvent.KEYCODE_DPAD_UP || code == KeyEvent.KEYCODE_DPAD_DOWN
@@ -2088,6 +2159,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return;
         }
         resumeQuickSettings = false;
+        restoreContinueFocus = false;
         onlyPaused = false;
         if (appLibrary != null) appLibrary.close();
         if (quickSettings != null) quickSettings.closeWithoutFocus();
@@ -2700,6 +2772,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         Intent intent = launcherSettings ? new Intent(this, LauncherSettingsActivity.class)
                 : QuickSettingsActions.intent(this, control)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        if (launcherSettings) intent.putExtra(HomePreviewView.DOCK_PACKAGE, continueShelf.focusedPackage());
         quickSettingsFocus = control;
         resumeQuickSettings = true;
         Runnable launch = () -> {

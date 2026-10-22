@@ -25,9 +25,21 @@ public class ThemeProvider extends ContentProvider {
     @Override public android.os.Bundle call(String method, String argument, android.os.Bundle extras) {
         if (android.os.Binder.getCallingUid() != android.os.Process.myUid())
             getContext().enforceCallingPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS, "Privileged launcher setup only");
-        if (!"feature-settings".equals(method) && !"feature-status".equals(method)) return super.call(method, argument, extras);
+        if (!"feature-settings".equals(method) && !"feature-status".equals(method) && !"continue-watching-status".equals(method)) return super.call(method, argument, extras);
         android.os.Bundle result = new android.os.Bundle();
         try {
+            if (method.equals("continue-watching-status")) {
+                long identity = android.os.Binder.clearCallingIdentity();
+                try {
+                    Config config = Config.load(getContext());
+                    ContinueWatchingRepository.Result data = ContinueWatchingRepository.load(getContext(), config.hiddenApps, null);
+                    org.json.JSONObject packages = new org.json.JSONObject();
+                    for (ContinueWatchingRepository.Item item : data.items) packages.put(item.pkg, packages.optInt(item.pkg) + 1);
+                    result.putString("status", new org.json.JSONObject().put("enabled", config.continueWatching)
+                            .put("permitted", data.permitted).put("failed", data.failed).put("count", data.items.size()).put("packages", packages).toString());
+                } finally { android.os.Binder.restoreCallingIdentity(identity); }
+                return result;
+            }
             if (method.equals("feature-settings")) {
                 if (argument == null || argument.length() > 4096) throw new IllegalArgumentException("Invalid settings");
                 FeaturePreferences.importSettings(getContext(), new org.json.JSONObject(argument));
@@ -38,7 +50,8 @@ public class ThemeProvider extends ContentProvider {
                     .put("wallpaper_choice", config.wallpaperChoice).put("wallpaper_count", config.wallpapers.size())
                     .put("wallpaper_rotation_minutes", config.wallpaperRotationMinutes).put("wallpaper_order", config.wallpaperOrder)
                     .put("wallpaper_true_color", config.wallpaperTrueColor).put("race_count", config.raceCalendar.size())
-                    .put("home_idle_clock_minutes", config.homeIdleClockMinutes).toString());
+                    .put("home_idle_clock_minutes", config.homeIdleClockMinutes)
+                    .put("continue_watching", config.continueWatching).put("tv_listings_permission", ContinueWatchingRepository.permitted(getContext())).toString());
         } catch (Exception failure) { result.putString("error", failure.getMessage()); }
         return result;
     }

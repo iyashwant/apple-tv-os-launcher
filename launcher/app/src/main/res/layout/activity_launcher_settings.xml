@@ -150,6 +150,8 @@
                 <View style="@style/SettingsDivider" />
                 <com.gathin.tvhome.SettingsRowView android:id="@+id/libraryChoice" style="@style/SettingsRow" android:text="@string/app_library" />
                 <View style="@style/SettingsDivider" />
+                <com.gathin.tvhome.SettingsRowView android:id="@+id/continueWatchingChoice" style="@style/SettingsRow" android:text="@string/continue_watching" />
+                <View style="@style/SettingsDivider" />
                 <com.gathin.tvhome.SettingsRowView android:id="@+id/statsChoice" style="@style/SettingsRow" android:text="@string/settings_stats" />
                 <View style="@style/SettingsDivider" />
                 <com.gathin.tvhome.SettingsRowView android:id="@+id/idleClockChoice" style="@style/SettingsRow" android:text="@string/feature_idle_clock" />

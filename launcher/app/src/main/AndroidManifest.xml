@@ -9,7 +9,9 @@
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <!-- Public race-calendar updates and user-initiated city search only. -->
+    <!-- Optional Continue Watching reads public, searchable TV listings after the user enables it. -->
+    <uses-permission android:name="android.permission.READ_TV_LISTINGS" />
+    <!-- Public race/city lookups and poster thumbnails supplied by participating media apps. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Needed since Android 10 to read the Wi-Fi network name for the network pill. Never requested at
          runtime: build-and-install grants it with pm grant, so lint's Android 12 "ask for COARSE with
@@ -20,6 +22,7 @@
     <!-- Android 11+ package visibility: lets the launcher list the TV apps it shows as tiles, and the
          apps that declare a module card (docs/specs/card.md). -->
     <queries>
+        <provider android:authorities="android.media.tv" />
         <intent>
             <action android:name="android.intent.action.OPEN_DOCUMENT" />
             <category android:name="android.intent.category.OPENABLE" />

@@ -28,6 +28,8 @@ public final class LauncherSettingsActivity extends Activity {
     private int rowsBelowDock;
     private SettingsRowView libraryChoice;
     private SettingsRowView statsChoice;
+    private SettingsRowView continueChoice;
+    private boolean continueWatching;
     private SettingsRowView followThemeChoice;
     private int columns;
     private boolean animations;
@@ -41,6 +43,7 @@ public final class LauncherSettingsActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         setContentView(R.layout.activity_launcher_settings);
+        ((HomePreviewView) findViewById(R.id.settingsPreviewImage)).setDockPackage(getIntent().getStringExtra(HomePreviewView.DOCK_PACKAGE));
         choices = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
         Config config = Config.load(this);
         columns = config.columns;
@@ -50,6 +53,7 @@ public final class LauncherSettingsActivity extends Activity {
         navigationSounds = config.navigationSounds;
         appLibrary = config.appLibrary;
         showStats = config.showStats;
+        continueWatching = config.continueWatching;
         wallpaper = config.wallpaperChoice;
 
         int[] ids = {R.id.columns4, R.id.columns5, R.id.columns6, R.id.columns7};
@@ -108,6 +112,13 @@ public final class LauncherSettingsActivity extends Activity {
             setResult(RESULT_OK);
             refresh();
         });
+        continueChoice = findViewById(R.id.continueWatchingChoice);
+        continueChoice.setIcon(R.drawable.ic_quick_screensaver, 0xFF64D2FF);
+        continueChoice.setOnClickListener(v -> {
+            if (!continueWatching && !ContinueWatchingRepository.permitted(this)) {
+                requestPermissions(new String[]{ContinueWatchingRepository.PERMISSION}, 74);
+            } else setContinueWatching(!continueWatching);
+        });
         statsChoice = findViewById(R.id.statsChoice);
         statsChoice.setOnClickListener(v -> {
             showStats = !showStats;
@@ -144,6 +155,7 @@ public final class LauncherSettingsActivity extends Activity {
             navigationSounds = current.navigationSounds;
             appLibrary = current.appLibrary;
             showStats = current.showStats;
+            continueWatching = current.continueWatching;
             wallpaper = current.wallpaperChoice;
             setResult(RESULT_OK);
             refresh();
@@ -170,6 +182,7 @@ public final class LauncherSettingsActivity extends Activity {
         // White focus and a raised shadow stay within the row's width. No scaling into a clip edge.
         for (int id : new int[]{R.id.columns4, R.id.columns5, R.id.columns6, R.id.columns7, R.id.animationsChoice,
                 R.id.advancedChoice, R.id.soundsChoice, R.id.libraryChoice, R.id.statsChoice,
+                R.id.continueWatchingChoice,
                 R.id.wallpaperChoice, R.id.rowsChoice, R.id.skyChoice, R.id.idleClockChoice,
                 R.id.appCustomizationChoice, R.id.remoteButtonsChoice, R.id.followThemeChoice,
                 R.id.defaultHomeChoice, R.id.tvSettingsChoice}) {
@@ -228,6 +241,7 @@ public final class LauncherSettingsActivity extends Activity {
         soundsChoice.setToggle(navigationSounds);
         libraryChoice.setToggle(appLibrary);
         statsChoice.setToggle(showStats);
+        continueChoice.setToggle(continueWatching);
         String wallpaperLabel = Config.WALLPAPER_AURORA.equals(wallpaper) ? getString(R.string.wallpaper_aurora)
                 : Config.WALLPAPER_OFF.equals(wallpaper) ? getString(R.string.off)
                 : Config.WALLPAPER_THEME.equals(wallpaper) ? getString(R.string.wallpaper_theme) : wallpaper;
@@ -267,6 +281,8 @@ public final class LauncherSettingsActivity extends Activity {
             title = R.string.app_library; hint = R.string.settings_app_library_hint;
         } else if (id == R.id.statsChoice) {
             title = R.string.settings_stats; hint = R.string.settings_stats_hint;
+        } else if (id == R.id.continueWatchingChoice) {
+            title = R.string.continue_watching; hint = R.string.continue_watching_help;
         } else if (id == R.id.followThemeChoice) {
             title = R.string.settings_follow_theme; hint = R.string.follow_theme_hint;
         } else if (id == R.id.defaultHomeChoice) {
@@ -282,6 +298,20 @@ public final class LauncherSettingsActivity extends Activity {
 
     private void updatePreview() {
         ((HomePreviewView) findViewById(R.id.settingsPreviewImage)).refresh(Config.load(this), null);
+    }
+
+    private void setContinueWatching(boolean enabled) {
+        continueWatching = enabled;
+        FeaturePreferences.prefs(this).edit().putBoolean("continue_watching", enabled).apply();
+        setResult(RESULT_OK); refresh();
+    }
+
+    @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] grants) {
+        super.onRequestPermissionsResult(request, permissions, grants);
+        if (request == 74) {
+            if (grants.length > 0 && grants[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) setContinueWatching(true);
+            else Toast.makeText(this, R.string.continue_permission_help, Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override protected void onResume() {
@@ -313,7 +343,8 @@ public final class LauncherSettingsActivity extends Activity {
     }
 
     private void openFeature(String page) {
-        startActivityForResult(FeatureSettingsActivity.intent(this, page), 43);
+        startActivityForResult(FeatureSettingsActivity.intent(this, page)
+                .putExtra(HomePreviewView.DOCK_PACKAGE, getIntent().getStringExtra(HomePreviewView.DOCK_PACKAGE)), 43);
     }
 
     private void featureRow(int id, String page, int icon, int color) {
@@ -329,6 +360,7 @@ public final class LauncherSettingsActivity extends Activity {
             animations = current.animations; advancedEffects = current.animations && current.advancedEffects;
             navigationSounds = current.navigationSounds; appLibrary = current.appLibrary;
             showStats = current.showStats; wallpaper = current.wallpaperChoice;
+            continueWatching = current.continueWatching;
             setResult(RESULT_OK); refresh();
         }
     }

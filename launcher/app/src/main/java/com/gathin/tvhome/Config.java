@@ -74,6 +74,7 @@ final class Config {
     final boolean showStats;
     /** App Library pill after the last Home row (config.xml app_library, or Launcher settings). */
     final boolean appLibrary;
+    final boolean continueWatching;
     /** Background colour behind everything, #RRGGBB; black unless a theme says otherwise. */
     final int backgroundColor;
     /** Time-of-day backdrop, 0 to 100 (config.xml, sky_intensity); 0 keeps the plain background. */
@@ -129,7 +130,7 @@ final class Config {
                    boolean showNetworkPill, boolean iconOnlyButtons, boolean libraryButton, int wifiLabelWidth,
                    boolean alwaysShowNames, boolean wallpaperTrueColor, boolean cinematicHome, boolean ambientGlow,
                    int homeIdleClockMinutes, String wallpaperOrder, List<RaceWeekend.Race> raceCalendar,
-                   Map<String, String> launchActions, Map<String, String> appLabels, Map<String, String> appBanners) {
+                   Map<String, String> launchActions, Map<String, String> appLabels, Map<String, String> appBanners, boolean continueWatching) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
         this.liveTvPackage = liveTvPackage;
@@ -167,6 +168,7 @@ final class Config {
         this.showHomeSettingsShortcut = showHomeSettingsShortcut;
         this.showStats = showStats;
         this.appLibrary = appLibrary;
+        this.continueWatching = continueWatching;
         this.backgroundColor = backgroundColor;
         this.skyIntensity = skyIntensity;
         this.settingsKeycodes = settingsKeycodes;
@@ -211,6 +213,7 @@ final class Config {
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
         boolean showStats = res.getBoolean(R.bool.show_stats);
         boolean library = res.getBoolean(R.bool.app_library);
+        boolean continueWatching = res.getBoolean(R.bool.continue_watching);
         int background = 0xFF000000;
         int skyIntensity = res.getInteger(R.integer.sky_intensity);
         int[] settingsKeycodes = res.getIntArray(R.array.settings_key_keycodes);
@@ -259,6 +262,7 @@ final class Config {
             homeSettings = bool(json, "show_home_settings_shortcut", homeSettings);
             showStats = bool(json, "show_stats", showStats);
             library = bool(json, "app_library", library);
+            continueWatching = bool(json, "continue_watching", continueWatching);
             background = color(json, "background_color", background);
             skyIntensity = integer(json, "sky_intensity", skyIntensity, 0, 100);
             settingsKeycodes = intArray(json, "settings_key_keycodes", settingsKeycodes);
@@ -347,7 +351,7 @@ final class Config {
                 showNetworkPill, iconOnlyButtons, libraryButton, wifiLabelWidth, alwaysShowNames, wallpaperTrueColor,
                 cinematicHome, ambientGlow, homeIdleClockMinutes, wallpaperOrder,
                 json == null ? Collections.emptyList() : raceCalendar(json),
-                packageMap(launchActions), packageMap(appLabels), packageMap(appBanners));
+                packageMap(launchActions), packageMap(appLabels), packageMap(appBanners), continueWatching);
     }
 
     private static Map<String, String> settingsRoutes(Resources res, JSONObject overlay) {

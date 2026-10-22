@@ -4,4 +4,5 @@
     <bool name="rtl_menu_bar">false</bool>
     <!-- Other locales keep the date on one line, ellipsized as before. -->
     <bool name="date_single_line">true</bool>
+    <bool name="continue_watching">false</bool>
 </resources>

@@ -381,13 +381,15 @@ This branch keeps its tvOS-style glass Home, folders, quick settings and grouped
 while integrating upstream Launcher 2.5. The optional cinematic shelf, compact network controls,
 collection wallpaper picker, persistent playback order, idle clock and app overrides use the same
 native visual foundation. Launcher settings has a live Home preview; app artwork can use another
-installed app’s icon. See the [on-TV feature guide](docs/features.md) and [upstream integration notes](docs/upstream-integration.md) for the
+installed app’s icon. An optional Continue Watching shelf follows the selected dock app and shows its unfinished items with progress and
+package-bound resume links. See the [on-TV feature guide](docs/features.md) and [upstream integration notes](docs/upstream-integration.md) for the
 configuration choices and validation record.
 
 A small native Android TV app (`com.gathin.tvhome`, about 1.5 MB with the offline Scenes pack) in plain Java with
 AndroidX RecyclerView and nothing heavier. Built for sets with 1 GB of RAM: static colour fields and
 translucent glass surfaces, with no live blur, video, or always-running background workers. Public race-calendar updates and city search
-are optional network features; wallpapers, the clock and sunrise calculations work offline after setup.
+are optional network features; Continue Watching also loads participating apps’ HTTPS poster thumbnails.
+Wallpapers, the clock and sunrise calculations work offline after setup.
 Folders share Home’s current wallpaper, dimming and sky, fading that background over the intact
 Home tiles while preserving dock and tile corners throughout the transition. No screenshot or blur preparation delays opening, and Home
 stays laid out for an immediate return on Back. App menus, folder dialogs and the App Library blur a small

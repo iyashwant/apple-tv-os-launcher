@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 
 /** A read-only miniature Home, fed by Home's real layout, app artwork and current wallpaper. */
 public final class HomePreviewView extends View {
+    static final String DOCK_PACKAGE = "preview_dock_package";
     private static final ExecutorService LOADER = Executors.newSingleThreadExecutor();
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final Path clip = new Path();
@@ -34,6 +35,11 @@ public final class HomePreviewView extends View {
     private Tile app;
     private String appPackage, artworkKey, wallpaperKey;
     private int artworkRequest, wallpaperRequest;
+    private int continueRequest;
+    private long continueLoadedAt;
+    private List<ContinueWatchingRepository.Item> continueItems = Collections.emptyList();
+    private List<ContinueWatchingRepository.Item> continueCandidates = Collections.emptyList();
+    private String dockPackage;
     private final Runnable tick = () -> { if (isAttachedToWindow()) refresh(Config.load(getContext()), appPackage); };
 
     private static final class Tile {
@@ -56,9 +62,30 @@ public final class HomePreviewView extends View {
         paint.setTypeface(getResources().getFont(R.font.outfit_regular));
     }
 
+    void setDockPackage(String pkg) {
+        dockPackage = pkg;
+        continueItems = ContinueWatchingRepository.forPackage(continueCandidates, dockPackage); invalidate();
+    }
+
     void refresh(Config current, String selectedApp) {
         if (!java.util.Objects.equals(appPackage, selectedApp)) app = null;
         config = current; appPackage = selectedApp; sky.setIntensity(current.skyIntensity);
+        if (!current.continueWatching || !ContinueWatchingRepository.permitted(getContext())) {
+            continueRequest++; continueCandidates = continueItems = Collections.emptyList(); continueLoadedAt = 0;
+        } else if (System.currentTimeMillis() - continueLoadedAt > 15_000) {
+            continueLoadedAt = System.currentTimeMillis(); int token = ++continueRequest;
+            Context appContext = getContext().getApplicationContext();
+            LOADER.execute(() -> {
+                ContinueWatchingRepository.Result result = ContinueWatchingRepository.loadForHome(appContext, current.hiddenApps, null);
+                post(() -> {
+                    if (token != continueRequest) return;
+                    continueCandidates = result.items;
+                    continueItems = ContinueWatchingRepository.forPackage(continueCandidates, dockPackage); invalidate();
+                    for (int i = 0; i < Math.min(4, continueItems.size()); i++)
+                        ContinueWatchingArtwork.load(appContext, continueItems.get(i), bitmap -> invalidate());
+                });
+            });
+        }
         File picture = Config.WALLPAPER_OFF.equals(current.wallpaperChoice) || !current.wallpaperEnabled
                 ? null : WallpaperPlayer.current(getContext(), current);
         boolean aurora = Config.WALLPAPER_AURORA.equals(current.wallpaperChoice);
@@ -107,6 +134,7 @@ public final class HomePreviewView extends View {
     @Override protected void onAttachedToWindow() { super.onAttachedToWindow(); if (config != null) refresh(config, appPackage); }
     @Override protected void onDetachedFromWindow() {
         removeCallbacks(tick); artworkRequest++; wallpaperRequest++; artworkKey = wallpaperKey = null;
+        continueRequest++; continueLoadedAt = 0;
         super.onDetachedFromWindow();
     }
 
@@ -144,16 +172,34 @@ public final class HomePreviewView extends View {
             if (config.showStats) text(canvas, "CPU   RAM   WIFI", 56, 126, 12, Paint.Align.LEFT, 0xB3FFFFFF);
             int width = AppAdapter.tileWidthPx(912, config.columns, 1), height = AppAdapter.tileHeightPx(width);
             int itemHeight = AppAdapter.itemHeightPx(height, 1);
-            float top = Math.max(140, 510 - itemHeight * (1 + config.rowsBelowDock));
+            boolean continuation = !continueItems.isEmpty();
+            int rowCount = 1 + config.rowsBelowDock;
+            float top = Math.max(140, 510 - itemHeight * rowCount);
             rounded(canvas, new RectF(12, top - 12, 948, top + height + 14), 24, 0x44FFFFFF);
-            for (int row = 0; row <= config.rowsBelowDock; row++) for (int col = 0; col < config.columns; col++) {
+            for (int row = 0; row < rowCount; row++) for (int col = 0; col < config.columns; col++) {
                 int index = row * config.columns + col; if (index >= tiles.size()) break;
                 float x = 24 + col * (912f / config.columns) + (912f / config.columns - width) / 2;
                 float y = top + row * itemHeight;
                 tile(canvas, tiles.get(index), new RectF(x, y, x + width, y + height));
                 if (config.alwaysShowNames) text(canvas, tiles.get(index).label, x + width / 2f, y + height + 16, 11, Paint.Align.CENTER, 0xCCFFFFFF);
             }
-            if (config.appLibrary && top + itemHeight * (1 + config.rowsBelowDock) < 522)
+            float shelfBottom = top - 30, shelfHeight = Math.min(228, shelfBottom - 130);
+            if (continuation && shelfHeight >= 142) {
+                float shelfTop = shelfBottom - shelfHeight, imageHeight = shelfHeight - 90, cardWidth = imageHeight * 16 / 9;
+                text(canvas, getContext().getString(R.string.continue_watching), 56, shelfTop + 22, 22, Paint.Align.LEFT, Color.WHITE);
+                for (int i = 0; i < Math.min(5, continueItems.size()); i++) {
+                    ContinueWatchingRepository.Item item = continueItems.get(i);
+                    RectF box = new RectF(56 + i * (cardWidth + 20), shelfTop + 38, 56 + i * (cardWidth + 20) + cardWidth, shelfTop + 38 + imageHeight);
+                    if (box.left > 950) break;
+                    rounded(canvas, box, 12, 0xFF202630);
+                    Bitmap image = ContinueWatchingArtwork.cached(item);
+                    if (image != null) { canvas.save(); clip.reset(); clip.addRoundRect(box, 12, 12, Path.Direction.CW); canvas.clipPath(clip); crop(canvas, image, box); canvas.restore(); }
+                    paint.setColor(0xFFFFFFFF); canvas.drawRect(box.left + 11, box.bottom - 8, box.left + 11 + (box.width() - 22) * item.progress() / 1000, box.bottom - 6, paint);
+                    paint.setTextSize(16);
+                    text(canvas, TextUtils.ellipsize(item.title, new android.text.TextPaint(paint), cardWidth, TextUtils.TruncateAt.END).toString(), box.left, box.bottom + 23, 16, Paint.Align.LEFT, Color.WHITE);
+                    text(canvas, item.appName, box.left, box.bottom + 42, 12, Paint.Align.LEFT, 0xB3FFFFFF);
+                }
+            } else if (config.appLibrary && top + itemHeight * rowCount < 522)
                 rounded(canvas, new RectF(420, 512, 540, 529), 8, 0x55FFFFFF);
         }
         canvas.restore();

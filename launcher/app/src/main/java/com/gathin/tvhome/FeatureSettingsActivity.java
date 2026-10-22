@@ -55,6 +55,7 @@ public final class FeatureSettingsActivity extends Activity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         setContentView(R.layout.activity_feature_settings);
+        ((HomePreviewView) findViewById(R.id.featurePreview)).setDockPackage(getIntent().getStringExtra(HomePreviewView.DOCK_PACKAGE));
         page = getIntent().getStringExtra(PAGE);
         if (page == null) page = WALLPAPER;
         if (state != null) {

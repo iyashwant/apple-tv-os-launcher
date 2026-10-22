@@ -62,4 +62,9 @@
     <string name="feature_save">Save</string>
     <string name="feature_no_apps">No launchable apps found</string>
     <string name="feature_choose">Choose</string>
+    <string name="continue_watching">Continue Watching</string>
+    <string name="continue_watching_help">Show unfinished movies and episodes from the app selected in the dock. Apps with no unfinished items show no row. Up selects a show; Down returns to your apps.</string>
+    <string name="continue_permission_help">Allow TV listings access to show Continue Watching from your apps.</string>
+    <string name="continue_unavailable">This item is no longer available. Open its app to continue watching.</string>
+    <string name="continue_remaining">%1$d minutes left</string>
 </resources>
