@@ -11,11 +11,11 @@
   <a href="#build-and-install">Build &amp; install</a>
 </p>
 
-![Home with a floating glass dock, large clock, and compact Wi-Fi, Inputs and Settings controls](docs/screenshots/readme/home.png)
+![Home with Apple TV selected in the glass dock, a large clock, and Wi-Fi, Inputs and Settings controls](docs/screenshots/readme/home.png)
 
 A home screen built around the apps you actually use. Pin your favorites to the dock, put the rest in folders, and move between everything with your TV remote. Rounded artwork, soft borders, translucent surfaces and clear focus states carry through the whole interface.
 
-**These are captures from the current launcher on a physical Xiaomi TV running Android 14, taken on 28 October 2026.** The Wi-Fi name is obscured in the public images. The app layout, menus and settings are shown as they were on the TV.
+**These are captures from the current launcher on a physical Xiaomi TV running Android 14, taken on 28 October 2026.** The app layout, menus and settings are shown as they were on the TV, with Apple TV selected in the Home view.
 
 ## Explore the interface
 
