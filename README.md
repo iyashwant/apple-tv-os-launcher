@@ -1,3 +1,13 @@
+# Apple TV OS Launcher
+
+An unofficial Apple TV-style launcher for Android TV and Google TV, maintained independently
+from [CleanYourTV](https://github.com/Gathin23/cleanyourtv). The `main` branch contains the custom
+glass interface, folders, app customization and optional Continue Watching. Upstream changes are
+reviewed and merged manually; see the [integration record](docs/upstream-integration.md).
+
+The original project's guides and attribution follow below. Its reference-launcher descriptions
+are distinguished from this project's behavior in the [fork feature guide](docs/features.md).
+
 <p align="center">
   <a href="https://cleanyour.tv"><img src="https://raw.githubusercontent.com/Gathin23/cleanyourtv/main/docs/banner.png" alt="CleanYourTV. Your TV, minus the ads. Strip the bloatware from any Android TV or Google TV over Wi-Fi and replace the ad-filled home screen with a clean launcher that looks like an Apple TV. No root, no cable, nothing uninstalled, and a one-line restore." width="800"></a>
 </p>
