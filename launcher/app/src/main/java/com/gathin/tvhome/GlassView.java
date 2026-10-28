@@ -23,12 +23,19 @@ public class GlassView extends View {
     private int accent;
     private Bitmap mask;
     private boolean maskDirty = true;
+    private String style=Config.GLASS_DEFAULT;
 
     public GlassView(Context context, AttributeSet attrs) {
         super(context, attrs);
         density = getResources().getDisplayMetrics().density;
         radius = 22f * density;
         setTint(0xFFB7C1C5);
+    }
+
+    void setStyle(String value) {
+        String next=Config.glassStyle(value);
+        if(style.equals(next))return;
+        style=next;maskDirty=true;invalidate();
     }
 
     void setTint(int color) {
@@ -64,6 +71,11 @@ public class GlassView extends View {
         float inset = HALO_INSET_DP * density;
         tile.set(inset, inset, getWidth() - inset, getHeight() - inset);
         maskPaint.setColor(0xFFFFFFFF);
+        if(Config.GLASS_RIM.equals(style)) {
+            maskPaint.setStyle(Paint.Style.STROKE);maskPaint.setStrokeWidth(1.2f*density);
+            cached.drawRoundRect(tile,radius,radius,maskPaint);maskPaint.setStyle(Paint.Style.FILL);
+            maskDirty=false;return;
+        }
         // Skia blurs into this tiny cache once per tile size, never into a live software layer.
         maskPaint.setShadowLayer(4.5f * density, 0f, 2f * density, 0xB8FFFFFF);
         cached.drawRoundRect(tile, radius, radius, maskPaint);

@@ -12,8 +12,6 @@
     <string name="quick_accessories">Comandaments i accessoris</string>
     <string name="quick_on">Activat</string>
     <string name="quick_off">Desactivat</string>
-    <string name="quick_picture">Imatge</string>
     <string name="quick_audio_output">Sortida d\'àudio</string>
-    <string name="quick_apps">Aplicacions</string>
     <string name="quick_sound">So</string>
 </resources>

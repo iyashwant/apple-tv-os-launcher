@@ -88,6 +88,19 @@ final class HomeLayout {
         return id;
     }
 
+    void placeInDock(String app, String target, boolean swap) {
+        if (app == null || app.startsWith(FOLDER_PREFIX) || target == null || app.equals(target) || !home.contains(target)) return;
+        int source = home.indexOf(app), slot = home.indexOf(target);
+        if (swap && source >= 0) {
+            java.util.Collections.swap(home, source, slot);
+            return;
+        }
+        moveTo(app, null);
+        home.remove(app);
+        int targetSlot = home.indexOf(target);
+        home.add(targetSlot >= 0 ? targetSlot : Math.min(slot,home.size()), app);
+    }
+
     void moveTo(String app, String folderId) {
         if (app == null || app.startsWith(FOLDER_PREFIX)) return;
         if (folderId != null && !folders.containsKey(folderId)) return;

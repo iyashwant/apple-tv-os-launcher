@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="quick_picture">Display</string>
+    <string name="quick_apps">Apps</string>
+    <string name="quick_settings">Quick settings</string>
+    <string name="quick_all_settings">Open All Settings</string>
+    <string name="quick_launcher_settings">Open Launcher Settings</string>
+    <string name="quick_close">Close quick settings</string>
+    <string name="quick_close_label">Close</string>
+    <string name="quick_back">Back to close</string>
+    <string name="quick_screensaver">Screensaver</string>
+    <string name="quick_start_now">Start now</string>
+    <string name="quick_bluetooth">Bluetooth</string>
+    <string name="quick_accessories">Remotes and accessories</string>
+    <string name="quick_on">On</string>
+    <string name="quick_off">Off</string>
+    <string name="quick_audio_output">Audio Output</string>
+    <string name="quick_sound">Sound</string>
+</resources>

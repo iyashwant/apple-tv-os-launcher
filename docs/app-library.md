@@ -13,9 +13,8 @@ Apps missing from Home come first. Apps first installed within the last seven da
 newest first, with a blue dot; older missing apps are alphabetical. Apps already on Home follow
 alphabetically, with a green check. Updating an existing app does not mark it as new.
 
-- Press OK on a missing app to add it to Home. Focus moves to the next missing app instead of
-  following the new shortcut across the shelf.
-- Press OK on a checked app to open it.
+- Press OK on any app to open it, whether or not its shortcut is on Home.
+- Hold OK to add or remove its Home shortcut. The app stays installed.
 - Hold OK for Open, Add to Home or Remove from Home, and App info, in the same frosted menu as a
   Home tile's.
 - On Home, hold OK on a tile and choose **Remove from Home**. The app leaves Home, and its folder if
@@ -39,3 +38,10 @@ The panel blurs a small snapshot of the Home behind it once, when it opens; noth
 blurred again while it is open. The focus light follows the launcher's animation setting, including
 instant movement when animations are off. There is no polling, network, new service, permission or
 dependency. The manifest's package query covers ordinary LAUNCHER activities on Android 11 and later.
+
+The fork defaults `library_ok_opens` to true. Setting it false restores add-or-open behavior.
+`app_library_selection` is an optional visibility editor: OK toggles checks, checked apps sort first,
+and hiding keeps focus on a nearby card. Catalogue exclusions and pre-seeded Home apps follow
+`library_excluded_apps` and `library_apps`. A theme may hide the bottom Library pill only while its
+top-bar Library button remains available. Catalogue/label/icon loads run off the UI thread; stale
+loads and loads canceled by leaving Home do not reveal the panel.

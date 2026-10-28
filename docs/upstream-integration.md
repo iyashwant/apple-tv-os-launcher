@@ -1,55 +1,59 @@
-# Upstream integration — 22 October 2026
+# Upstream integration — 28 October 2026
 
-This branch integrates upstream `origin/main` at `622789f07fdc1b4b9914f900905a9065cee8c244`.
-The previous integration stopped at `022c57da7c4f07466141229cb5625f6ae4fd7ba0`.
-The incoming history contains 489 commits, including merge commits. The UI integration was validated
-through `c1da7e10`; a follow-up merge brought in 79 more device-profile, documentation and benchmark
-commits, with no further launcher changes.
+The throwaway branch `codex/tvos-upstream-review-20261028` integrates upstream
+`095b71ad93d99ea28d94d97b06385709d354b795` into the Apple-style fork at
+`333e0c9e4742e0a226d24a2be0686301bec43ef5`. The shared base is
+`622789f07fdc1b4b9914f900905a9065cee8c244`. Upstream contributes 2,553 commits
+(including merges), 2,252 changed paths and 60 new resource configuration keys.
+The initial three-way preview had 52 conflicted paths.
 
-## UI and data kept from this fork
+## Decisions
 
-- The translucent layered dock, cached app-colour focus halo, Outfit typography and six-column Home.
-- The expanding grid, folders, folder previews and motion, per-tile menus and remote reordering.
-- The glass App Library and quick-settings panel, firmware settings routes, grouped launcher settings
-  and persistent navigation-sound controls.
-- Saved app order, folder membership and names, App Library choices and existing preferences.
-- Package identity `com.gathin.tvhome`, version `3.28` / code `31`, and the existing signing setup.
-  The upstream optional `launcherApplicationId` build property is available for firmware allowlists;
-  ordinary builds keep the existing identity.
+- OK opens every app in the glass App Library; hold manages its Home shortcut.
+- The existing folder-aware glass tile menu gains Menu-key access and direct dock commands.
+- Helper recovery support is included, with every recovery option off by default.
 
-## Incoming behavior adapted to that foundation
+## Integration ownership
 
-| Area | Integration |
+| Area | Result |
 |---|---|
-| Home | Cinematic artwork, last-opened metadata and position dots are opt-in and use the fork's shelf and typography. Compact network controls, hidden network pill, optional Library shortcut and always-visible app names use its existing glass controls and key router. |
-| Wallpapers | Theme / Aurora / Off remain available. The grouped settings row additionally selects a picture from the theme collection. Ordered or shuffled rotation, collection reconciliation and true-color decoding retain the fork's cropped, asynchronous decoder and memory guard. |
-| Settings | Rows below the dock use a grouped settings row. Follow theme clears the added row and picture overrides alongside the fork's existing choices. |
-| Apps and remote | Per-app actions, labels and bundled banners; scancode app-button mappings; shared LEANBACK query and lazy card-record loading. Spotify keeps its custom glyph treatment. |
-| Inputs | HDMI-CEC device deduplication, custom port labels, vendor source-panel activities and omission of misleading AV connection state use the glass input menu. |
-| Boot and memory | Theme configuration is cached for boot before external storage mounts. Low-memory cleanup runs only while Home is hidden and restores the layout on return. Clock visibility follows valid system time. |
-| Clock and themes | Home-only idle clock, the shared clock scene, local sunrise/sunset calculation, race-weekend information in a glass panel, and the Scenes wallpaper collection. |
-| Tools and translations | Upstream device profiles, firmware-drift checks, guarded debloating, screenshot/relay/upload helpers, documentation and six added languages. Strings for replaced stock controls are omitted. |
+| Home and folders | Keep the layered dock, cached app-colour halo, six-column expanding grid, folder previews/transitions and `home-layout-v2.json`. Dock commands use that same atomic store, including unavailable-app ranks. The stock `Order`/`DockSlots` stores are not reintroduced. |
+| Library | Preserve the frosted shelf and menus; port asynchronous catalogue/label/icon loading, stale-load cancellation, selection/open modes, pre-seeding and exclusions. |
+| Settings | Keep grouped glass rows, custom firmware routes, personal overrides and live preview. Add revision tracking for exits through Home, vendor/power-menu destinations, dock opacity, clock wallpaper/glow, and optional startup-app/network-wait choices. |
+| Remote and inputs | Keep button learning and personal precedence. Port tap/hold/front mappings, action/input/guide targets, controller/volume compatibility, vendor source routes and connected-only input folding into the existing menu. |
+| Launching | Tiles, Library, app-action editor and header shortcuts share package-scoped URI/action semantics. TV inputs route through the existing picker implementation. Continue Watching keeps its stricter publishing-app resume-link validation. |
+| Wallpaper and clock | Keep Scenes, Aurora/Off/pinned choices, cropped bounded decoding and shared folder backdrop. Add time-of-day groups/captions, dim once into the bitmap, prepare GPU upload, trim recovery and Home wallpaper behind the moving clock. |
+| Sports and dates | Keep cached/network-updated F1 data and the glass race panel; optionally rotate Game Day add-on data in that panel. Add lunar dates, launcher language override and new locales, retaining fork strings and font fallbacks. |
+| Tools and content | Import maintained safety/tool improvements, 155 new TV lists, generated metadata/indexes, optional add-on source and themes. Add-ons remain separate apps. |
+| Packaging | Keep package identity, version 3.37/code 40, Scene asset preparation and instrumentation runner. Import upstream CI checks and the separate add-on build workflow; retain the fork’s APK gate and upstream-only maintainer-bot guard. |
 
-The stock `dock_row`, `fill_dock` and `reorder_button` switches remain unsupported: the fork owns
-its dock and folder layout, with Move on each tile's menu. The upstream ring-based highlight is
-covered by the fork's existing cached, diffused halo. Cinematic mode retains the layered glass dock.
+## Intentional differences
 
-The CI APK ceiling is 528 KiB, allowing the fork's bundled artwork, fonts and integrated features
-while continuing to guard size growth. The imported maintainer-bot workflow is restricted to the
-upstream repository, so publishing an independent fork does not activate that upstream automation.
+The fork does not use the stock `single_row`, `dock_band_all`, `dock_row`, `fill_dock`,
+`reorder_button` or `top_menu` layout engines. Its own expanding grid, folders and quick settings
+remain authoritative. Stock `app_glow`/`glow_style`/`dock_glass` renderers do not replace the
+existing app-colour light and glass material. Top-bar app shortcuts preserve Home membership.
+YaOS routing catches a permission refusal; this integration does not add its vendor permission.
+
+The fork already declares network and TV-listings permissions for city/race data and optional
+Continue Watching. The accepted recovery work additionally declares WRITE_SECURE_SETTINGS and
+dormant recovery components. Normal installation grants no secure-settings permission and enables
+no notification listener. Recovery flags and standby opt-ins remain off.
+
+The old screenshots document the physical TV before this integration. They are design references,
+not evidence of the resulting merge. No TV has been modified by this work.
 
 ## Validation
 
-- `testReleaseUnitTest`: 134 tests passed.
-- `lintRelease`: zero errors.
-- `assembleRelease`, `assembleDebug`, `assembleDebugAndroidTest`: passed.
-- Python discovery: 206 tests for the UI integration; 211 including the follow-up benchmark checks,
-  passed with one skip.
-- Android TV 14 emulator: all 13 smoke instrumentations passed, including 22 new integration
-  checks plus folder motion, navigation, reordering, wallpaper, settings and quick-settings coverage.
+- Unchanged fork baseline: 211 Python tests passed, one skipped.
+- Integrated repository: 2,132 Python tests passed, 30 skipped.
+- Android: 299 JVM tests passed; lint had zero errors and 157 warnings.
+- Release assembly and instrumentation-test APK compilation passed.
+- Release APK: 1,656,774 B, below the existing fork limit of 1,835,008 B.
+  The size limit was not changed.
+- Focused dock-model tests cover grid insertion, swaps, missing-app ranks, folder extraction,
+  last-folder-item handling and stale targets.
 
-The emulator fixtures restore the configuration and preferences they change. The physical TV was
-not updated by this integration. The existing physical-TV screenshots in the README are reference
-images from before this merge.
-
-Recovery point: local branch `codex/tvos-before-origin-main-20261021` at `8cd3bd39`.
+Physical-TV D-pad, remote hold/volume behavior, reboot/standby/recovery and visual acceptance have
+not been run. Instrumentation compilation is not an instrumented device run. The merge is a local
+review draft; it does not update the source branch, push to GitHub or install on a TV.

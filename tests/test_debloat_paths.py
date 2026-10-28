@@ -53,6 +53,8 @@ class DebloatPathsTest(unittest.TestCase):
             '  shift 2\n'
             f'  exec "{sys.executable}" "{ROOT / "tools" / "recovery.py"}" "$@"\n'
             'fi\n'
+            # The read-back after the batch (#1376) answers nothing, so CAPTURE keeps the batch.
+            'case "$*" in *"pm list packages -e"*) exit 0 ;; esac\n'
             'cat > "$CAPTURE"\n'
         )
         client.chmod(0o755)
@@ -61,14 +63,17 @@ class DebloatPathsTest(unittest.TestCase):
         return tools, home
 
     def run_script(self, script_path, argument, cwd, base, home):
+        if os.name != "posix" or not shutil.which("bash"):
+            raise unittest.SkipTest("disable.sh and restore.sh are POSIX scripts; they need bash")
         capture = base / "commands.txt"
         # No TV_HOST, so recovery.py looks for a record that cannot exist: that is the fallback these
         # tests exercise. HOME is isolated so a record from a real run cannot answer instead.
         env = {k: v for k, v in os.environ.items() if k != "TV_HOST"}
         env.update(CAPTURE=str(capture), HOME=str(home))
+        # The fake tv.py reads its stdin, so an inherited terminal would leave it waiting.
         result = subprocess.run(
             ["bash", str(script_path), argument], cwd=cwd, env=env,
-            capture_output=True, text=True,
+            capture_output=True, text=True, stdin=subprocess.DEVNULL,
         )
         return result, capture
 

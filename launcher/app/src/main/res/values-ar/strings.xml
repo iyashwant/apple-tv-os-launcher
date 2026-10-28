@@ -10,6 +10,7 @@
     <string name="not_connected">لا يوجد جهاز</string>
     <string name="live_tv">البث المباشر</string>
     <string name="no_inputs">لم يتم العثور على مدخلات</string>
+    <string name="more_inputs">مدخلات أخرى</string>
     <string name="good_morning">صباح الخير</string>
     <string name="good_afternoon">مساء الخير</string>
     <string name="good_evening">مساء الخير</string>
@@ -20,7 +21,7 @@
     <string name="cant_open">تعذّر فتح %1$s</string>
     <string name="date_format">EEEE  d MMMM</string>
     <string name="stats_cpu">CPU %1$d%%</string>
-    <string name="stats_memory">الذاكرة %1$d م.ب متاحة</string>
+    <string name="stats_memory">الذاكرة %1$d / %2$d م.ب</string>
     <string name="stats_storage">التخزين %1$s متاح</string>
     <string name="dream_name">الساعة</string>
     <string name="vpn">VPN</string>
@@ -49,34 +50,15 @@
     <string name="card_state_new">جديدة</string>
     <string name="card_state_new_key">مفتاح جديد</string>
     <string name="card_state_new_label">اسم جديد</string>
-    <string name="untitled_folder">مجلد بلا عنوان</string>
-    <string name="folder_item_removed">تمت إعادة %1$s إلى الشاشة الرئيسية</string>
-    <string name="remove_from_folder">إزالة من المجلد</string>
-
-    <string name="move_app">نقل</string>
-    <string name="app_settings">إعدادات التطبيق</string>
-    <string name="app_dock">شريط التطبيقات</string>
-    <string name="app_grid">التطبيقات</string>
-    <string name="move_app_hint">نقل %1$s · %2$d من %3$d · %4$s\n← ↑ ↓ → نقل · OK حفظ · رجوع إلغاء</string>
-    <string name="saving_app_order">جارٍ حفظ الترتيب…</string>
-    <string name="app_order_failed">تعذّر حفظ الترتيب. اضغط على OK للمحاولة مجددًا أو على رجوع للإلغاء.</string>
-    <string name="move_to">إضافة إلى مجلد</string>
-    <string name="new_folder">مجلد جديد</string>
-    <string name="rename_folder">إعادة تسمية المجلد</string>
-    <string name="folder_name">اسم المجلد</string>
-    <string name="folder_default_name">ترفيه</string>
-    <string name="folder_description">%1$s، مجلد</string>
-    <string name="move_to_home">الشاشة الرئيسية</string>
-    <string name="done">تم</string>
-    <string name="cancel">إلغاء</string>
-    <string name="folder_save_failed">تعذّر حفظ التغييرات. يُرجى المحاولة مجددًا.</string>
-    <string name="folder_move_hint">نقل %1$s · %2$d من %3$d\n← ↑ ↓ → نقل · OK حفظ · رجوع إلغاء</string>
-    <string name="unnamed_folder">مجلد بلا اسم</string>
     <string name="launcher_settings">إعدادات المشغّل</string>
+    <string name="native_settings">إعدادات المُصنّع</string>
     <string name="columns_label">تطبيقات في كل صف</string>
+    <string name="dock_opacity_label">عتامة شريط التطبيقات</string>
     <string name="animations_state">الرسوم المتحركة: %1$s</string>
     <string name="advanced_effects">تأثيرات متقدمة</string>
     <string name="advanced_effects_state">تأثيرات متقدمة: %1$s</string>
+    <string name="open_on_start_label">الفتح عند التشغيل</string>
+    <string name="open_on_start_state">الفتح عند التشغيل: %1$s</string>
     <string name="advanced_effects_warning">ترفع البطاقات وتكبّر الأيقونات وتنعّم انتقالات الألوان. قد تزيد استهلاك الذاكرة حسب التلفاز.</string>
     <string name="follow_theme">اتّباع السمة (إعادة ضبط الخيارات)</string>
     <string name="follow_theme_hint">استخدم تخطيط السمة الحالية وحركتها أو القيم المضمّنة. تطبيق سمة أو إعادة ضبطها يمحو خيارات التلفاز أيضًا.</string>
@@ -84,6 +66,17 @@
     <string name="on">تشغيل</string>
     <string name="off">إيقاف</string>
     <string name="enable">تفعيل</string>
+    <string name="dock_edit">تعديل شريط التطبيقات</string>
+    <string name="power_menu">إعادة التشغيل…</string>
+    <string name="dock_edit_hint">اختر الموضع الذي تريد تغييره في الشريط واضغط موافق. اضغط رجوع للإنهاء.</string>
+    <string name="dock_edit_pick_app">اختر الآن التطبيق الذي تريد وضعه هناك واضغط موافق. اضغط رجوع لاختيار موضع آخر.</string>
+    <string name="tile_add_to_dock">إضافة إلى الشريط</string>
+    <string name="tile_replace_in_dock">استبدال بتطبيق آخر</string>
+    <string name="dock_edit_pick_place">اختر موضعًا في الشريط لهذا التطبيق واضغط موافق. اضغط رجوع للإلغاء.</string>
+    <string name="reorder">إعادة ترتيب التطبيقات</string>
+    <string name="tile_move">نقل</string>
+    <string name="reorder_hint">اضغط موافق لالتقاط تطبيق، والأسهم لتحريكه، ورجوع لتثبيته. اضغط رجوع مرة أخرى للإنهاء.</string>
+    <string name="reorder_not_saved">تعذّر حفظ الترتيب الجديد</string>
     <string name="app_library">مكتبة التطبيقات</string>
     <string name="library_empty">لم يتم العثور على تطبيقات قابلة للتشغيل</string>
     <string name="library_on_home">على الرئيسية</string>
@@ -104,4 +97,32 @@
         <item quantity="other">%1$d تطبيق</item>
     </plurals>
     <string name="greeting_with_name">%1$s، %2$s</string>
+    <string name="game_live">مباشر الآن</string>
+
+    <!-- Apple-style fork controls. -->
+    <string name="untitled_folder">مجلد بلا عنوان</string>
+    <string name="folder_item_removed">تمت إعادة %1$s إلى الشاشة الرئيسية</string>
+    <string name="remove_from_folder">إزالة من المجلد</string>
+    <string name="move_app">نقل</string>
+    <string name="app_settings">إعدادات التطبيق</string>
+    <string name="app_dock">شريط التطبيقات</string>
+    <string name="app_grid">التطبيقات</string>
+    <string name="move_app_hint">نقل %1$s · %2$d من %3$d · %4$s\n← ↑ ↓ → نقل · OK حفظ · رجوع إلغاء</string>
+    <string name="saving_app_order">جارٍ حفظ الترتيب…</string>
+    <string name="app_order_failed">تعذّر حفظ الترتيب. اضغط على OK للمحاولة مجددًا أو على رجوع للإلغاء.</string>
+    <string name="move_to">إضافة إلى مجلد</string>
+    <string name="new_folder">مجلد جديد</string>
+    <string name="rename_folder">إعادة تسمية المجلد</string>
+    <string name="folder_name">اسم المجلد</string>
+    <string name="folder_default_name">ترفيه</string>
+    <string name="folder_description">%1$s، مجلد</string>
+    <string name="move_to_home">الشاشة الرئيسية</string>
+    <string name="done">تم</string>
+    <string name="cancel">إلغاء</string>
+    <string name="folder_save_failed">تعذّر حفظ التغييرات. يُرجى المحاولة مجددًا.</string>
+    <string name="folder_move_hint">نقل %1$s · %2$d من %3$d\n← ↑ ↓ → نقل · OK حفظ · رجوع إلغاء</string>
+    <string name="unnamed_folder">مجلد بلا اسم</string>
+    <string name="feature_clock_wallpaper">Use Home wallpaper behind the clock</string>
+    <string name="feature_clock_glow">Clock ambient glow</string>
+    <string name="feature_startup_wait">Wait for network before opening</string>
 </resources>

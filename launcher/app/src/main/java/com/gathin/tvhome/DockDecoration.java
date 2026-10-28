@@ -16,7 +16,8 @@ import androidx.recyclerview.widget.RecyclerView;
 public class DockDecoration extends RecyclerView.ItemDecoration {
     private final int dockSize;
     private final float density;
-    private boolean enabled = true;
+    private boolean enabled = true, band = true, evenPadding;
+    private float opacity = 1f;
     private boolean names;
     void setShowNames(boolean value) { names = value; }
     private final Paint body = new Paint(3), warmth = new Paint(3), reflection = new Paint(3);
@@ -35,6 +36,12 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         innerEdge.setStrokeWidth(.5f * density);
     }
     void setEnabled(boolean value) { enabled = value; }
+    DockDecoration configure(Config config) { band=config.dockBand;evenPadding=config.dockEvenPadding;
+        opacity=config.dockOpacity/100f;return this; }
+    static float radiusPx(float tileRadius,float padding){return tileRadius+padding;}
+    static float evenPaddingPx(int inner,int columns,int tile,float available){
+        return columns<1?0f:Math.max(0f,Math.min(inner/(float)columns-tile,available));
+    }
 
     /** Extra space under the dock row that the rows below it do not have. */
     int rowInset() { return enabled ? Math.round(8 * density) : 0; }
@@ -69,8 +76,9 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
 
     @Override public void onDraw(@NonNull Canvas canvas, @NonNull RecyclerView parent,
             @NonNull RecyclerView.State state) {
-        if (!enabled) return;
+        if (!enabled || !band) return;
         boolean found = false;
+        float tileWidth=0f;
         for (int i = 0; i < parent.getChildCount(); i++) {
             View child = parent.getChildAt(i);
             // Follow the laid-out slots, not app identities already shifted by notifyItemMoved.
@@ -79,6 +87,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             RecyclerView.ViewHolder vh = parent.getChildViewHolder(child);
             View card = vh instanceof AppAdapter.Holder ? ((AppAdapter.Holder) vh).card : child.findViewById(R.id.card);
             if (card == null) continue;
+            tileWidth=card.getWidth();
             float l = child.getLeft() + card.getLeft();
             // Reordering translates individual tiles. The dock belongs to the first row's layout
             // and must never travel with those tiles into another row.
@@ -91,13 +100,16 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         // edge tile and still leave a visible gap. Keep the rounded ends inside that viewport.
         float side = Math.max(0f, Math.min(20 * density,
                 Math.min(rect.left, parent.getWidth() - rect.right) - density));
-        rect.inset(-side, -16 * density);
+        float padding=evenPadding?evenPaddingPx(parent.getWidth(),dockSize,(int)tileWidth,side):16*density;
+        rect.inset(-(evenPadding?padding:side), -padding);
         if (names) rect.bottom += 22 * density;
-        float radius = 36 * density;
+        float radius = evenPadding?radiusPx(AppAdapter.cornerRadius((int)tileWidth,density),padding):36*density;
         shaders(rect.width(), rect.height());
         matrix.setTranslate(rect.left, rect.top);
-        for (Paint paint : layers)
+        for (Paint paint : layers) {
             paint.getShader().setLocalMatrix(matrix);
+            paint.setAlpha(Math.round(255*opacity));
+        }
         canvas.drawRoundRect(rect, radius, radius, body);
         // The band's own shape bounds these two layers: the same pixels as clipping them to it, without a
         // path clip on every frame.

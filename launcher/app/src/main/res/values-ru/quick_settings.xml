@@ -12,8 +12,6 @@
     <string name="quick_accessories">Пульты и аксессуары</string>
     <string name="quick_on">Вкл.</string>
     <string name="quick_off">Выкл.</string>
-    <string name="quick_picture">Изображение</string>
     <string name="quick_audio_output">Аудиовыход</string>
-    <string name="quick_apps">Приложения</string>
     <string name="quick_sound">Звук</string>
 </resources>

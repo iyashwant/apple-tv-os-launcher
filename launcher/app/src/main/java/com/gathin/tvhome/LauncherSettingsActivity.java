@@ -18,6 +18,10 @@ import android.widget.Toast;
 
 /** Remote-friendly settings owned by the launcher; system settings stay one row away. */
 public final class LauncherSettingsActivity extends Activity {
+    @Override protected void attachBaseContext(android.content.Context base) {
+        super.attachBaseContext(LauncherLocale.wrap(base));
+    }
+
     private SharedPreferences choices;
     private final TextView[] columnChoices = new TextView[4];
     private SettingsRowView animationsChoice;
@@ -64,7 +68,7 @@ public final class LauncherSettingsActivity extends Activity {
                 if (columns == value) return;
                 columns = value;
                 choices.edit().putInt("columns", value).apply();
-                setResult(RESULT_OK);
+                Config.markSettingsChanged(LauncherSettingsActivity.this); setResult(RESULT_OK);
                 refresh();
             });
         }
@@ -81,7 +85,7 @@ public final class LauncherSettingsActivity extends Activity {
             if (!animations) advancedEffects = false;
             choices.edit().putBoolean("animations", animations)
                     .putBoolean("advanced_effects", advancedEffects).apply();
-            setResult(RESULT_OK);
+            Config.markSettingsChanged(LauncherSettingsActivity.this); setResult(RESULT_OK);
             refresh();
         });
         advancedChoice = findViewById(R.id.advancedChoice);
@@ -102,14 +106,14 @@ public final class LauncherSettingsActivity extends Activity {
         soundsChoice.setOnClickListener(v -> {
             navigationSounds = !navigationSounds;
             choices.edit().putBoolean("navigation_sounds", navigationSounds).apply();
-            setResult(RESULT_OK);
+            Config.markSettingsChanged(LauncherSettingsActivity.this); setResult(RESULT_OK);
             refresh();
         });
         libraryChoice = findViewById(R.id.libraryChoice);
         libraryChoice.setOnClickListener(v -> {
             appLibrary = !appLibrary;
             choices.edit().putBoolean("app_library", appLibrary).apply();
-            setResult(RESULT_OK);
+            Config.markSettingsChanged(LauncherSettingsActivity.this); setResult(RESULT_OK);
             refresh();
         });
         continueChoice = findViewById(R.id.continueWatchingChoice);
@@ -123,7 +127,7 @@ public final class LauncherSettingsActivity extends Activity {
         statsChoice.setOnClickListener(v -> {
             showStats = !showStats;
             choices.edit().putBoolean("show_stats", showStats).apply();
-            setResult(RESULT_OK);
+            Config.markSettingsChanged(LauncherSettingsActivity.this); setResult(RESULT_OK);
             refresh();
         });
         rowsChoice = findViewById(R.id.rowsChoice);
@@ -131,7 +135,7 @@ public final class LauncherSettingsActivity extends Activity {
         rowsChoice.setOnClickListener(v -> {
             rowsBelowDock = (rowsBelowDock + 1) % 4;
             choices.edit().putInt(Config.ROWS_BELOW_DOCK_KEY, rowsBelowDock).apply();
-            setResult(RESULT_OK);
+            Config.markSettingsChanged(LauncherSettingsActivity.this); setResult(RESULT_OK);
             refresh();
         });
         wallpaperChoice = findViewById(R.id.wallpaperChoice);
@@ -157,7 +161,7 @@ public final class LauncherSettingsActivity extends Activity {
             showStats = current.showStats;
             continueWatching = current.continueWatching;
             wallpaper = current.wallpaperChoice;
-            setResult(RESULT_OK);
+            Config.markSettingsChanged(LauncherSettingsActivity.this); setResult(RESULT_OK);
             refresh();
         });
         findViewById(R.id.defaultHomeChoice).setOnClickListener(v -> {
@@ -226,7 +230,7 @@ public final class LauncherSettingsActivity extends Activity {
     private void setAdvanced(boolean enabled) {
         advancedEffects = enabled;
         choices.edit().putBoolean("advanced_effects", enabled).apply();
-        setResult(RESULT_OK);
+        Config.markSettingsChanged(LauncherSettingsActivity.this); setResult(RESULT_OK);
         refresh();
     }
 
@@ -303,7 +307,7 @@ public final class LauncherSettingsActivity extends Activity {
     private void setContinueWatching(boolean enabled) {
         continueWatching = enabled;
         FeaturePreferences.prefs(this).edit().putBoolean("continue_watching", enabled).apply();
-        setResult(RESULT_OK); refresh();
+        Config.markSettingsChanged(LauncherSettingsActivity.this); setResult(RESULT_OK); refresh();
     }
 
     @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] grants) {
@@ -361,7 +365,7 @@ public final class LauncherSettingsActivity extends Activity {
             navigationSounds = current.navigationSounds; appLibrary = current.appLibrary;
             showStats = current.showStats; wallpaper = current.wallpaperChoice;
             continueWatching = current.continueWatching;
-            setResult(RESULT_OK); refresh();
+            Config.markSettingsChanged(LauncherSettingsActivity.this); setResult(RESULT_OK); refresh();
         }
     }
 }

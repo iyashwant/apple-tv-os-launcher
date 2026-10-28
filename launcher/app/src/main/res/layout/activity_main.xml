@@ -41,12 +41,12 @@
         android:layout_height="wrap_content"
         android:textColor="#FFFFFFFF"
         android:textSize="48sp"
-        android:fontFamily="@font/outfit_light"
+        android:fontFamily="@string/font_light"
         android:letterSpacing="-0.02"
         android:includeFontPadding="false"
         android:singleLine="true" />
         <TextView android:id="@+id/heroMeta" android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:layout_marginTop="10dp" android:textSize="14sp" android:fontFamily="@font/outfit_regular"
+            android:layout_marginTop="10dp" android:textSize="14sp" android:fontFamily="@string/font_regular"
             android:textColor="#99FFFFFF" android:visibility="gone" />
         <LinearLayout android:id="@+id/heroDots" android:layout_width="wrap_content" android:layout_height="6dp"
             android:layout_marginTop="14dp" android:orientation="horizontal" android:visibility="gone" />
@@ -92,7 +92,7 @@
                     android:layout_marginStart="4dp"
                     android:textColor="#8CFFFFFF"
                     android:textSize="12sp"
-                    android:fontFamily="@font/outfit_medium"
+                    android:fontFamily="@string/font_medium"
                     android:letterSpacing="0.22"
                     android:textAllCaps="true" />
 
@@ -110,7 +110,7 @@
                         android:format24Hour="HH:mm"
                         android:textColor="#FFFFFFFF"
                         android:textSize="52sp"
-                        android:fontFamily="@font/outfit_light"
+                        android:fontFamily="@string/font_light"
                         android:letterSpacing="-0.04"
                         android:includeFontPadding="false" />
 
@@ -125,7 +125,7 @@
                         android:format24Hour=""
                         android:textColor="#B3FFFFFF"
                         android:textSize="15sp"
-                        android:fontFamily="@font/outfit_medium"
+                        android:fontFamily="@string/font_medium"
                         android:letterSpacing="0.08"
                         android:textAllCaps="true" />
 
@@ -156,7 +156,7 @@
                             android:ellipsize="end"
                             android:textColor="#E6FFFFFF"
                             android:textSize="17sp"
-                            android:fontFamily="@font/outfit_regular"
+                            android:fontFamily="@string/font_regular"
                             android:letterSpacing="0.02"
                             android:includeFontPadding="false"
                             android:visibility="gone" />
@@ -174,7 +174,7 @@
                             android:format24Hour="@string/date_format_home"
                             android:textColor="#A6FFFFFF"
                             android:textSize="14sp"
-                            android:fontFamily="@font/outfit_regular"
+                            android:fontFamily="@string/font_regular"
                             android:letterSpacing="0.14"
                             android:textAllCaps="true" />
                     </LinearLayout>
@@ -198,7 +198,7 @@
                 android:ellipsize="end"
                 android:textColor="#8CFFFFFF"
                 android:textSize="12sp"
-                android:fontFamily="@font/outfit_medium"
+                android:fontFamily="@string/font_medium"
                 android:letterSpacing="0.08"
                 android:focusable="false"
                 android:visibility="gone" />
@@ -249,11 +249,11 @@
                 android:layout_below="@id/stats" android:layout_marginTop="12dp" android:orientation="vertical"
                 android:padding="16dp" android:gravity="left" android:visibility="gone">
                 <TextView android:id="@+id/raceKicker" android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:gravity="left" android:textSize="11sp" android:fontFamily="@font/outfit_medium" android:textColor="#99FFFFFF" />
+                    android:gravity="left" android:textSize="11sp" android:fontFamily="@string/font_medium" android:textColor="#99FFFFFF" />
                 <TextView android:id="@+id/raceHeadline" android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:gravity="left" android:layout_marginTop="4dp" android:textSize="24sp" android:fontFamily="@font/outfit_light" android:textColor="#FFFFFFFF" />
+                    android:gravity="left" android:layout_marginTop="4dp" android:textSize="24sp" android:fontFamily="@string/font_light" android:textColor="#FFFFFFFF" />
                 <TextView android:id="@+id/raceSessions" android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:gravity="left" android:layout_marginTop="6dp" android:textSize="11sp" android:fontFamily="@font/outfit_regular" android:textColor="#99FFFFFF" />
+                    android:gravity="left" android:layout_marginTop="6dp" android:textSize="11sp" android:fontFamily="@string/font_regular" android:textColor="#99FFFFFF" />
             </LinearLayout>
         </RelativeLayout>
 

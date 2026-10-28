@@ -145,6 +145,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final float restNameAlpha;
     private final boolean cinematic;
     private final Map<String, String> launchActions, appLabels, appBanners;
+    private final Set<String> libraryPreload, iconTiles;
+    private final boolean uniformTiles, focusOvershoot;
     /** Dock order (config.xml dock_apps, or a theme's config.json). */
     private final List<String> favourites;
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
@@ -200,6 +202,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         launchActions = source.launchActions;
         appLabels = source.appLabels;
         appBanners = source.appBanners;
+        libraryPreload=source.libraryPreload;iconTiles=source.iconTiles;uniformTiles=source.uniformTiles;focusOvershoot=source.focusOvershoot;
         favourites = source.favourites;
         hidden = source.hidden;
         showHomeSettings = source.showHomeSettings;
@@ -249,6 +252,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.launchActions = cfg.launchActions;
         this.appLabels = cfg.appLabels;
         this.appBanners = cfg.appBanners;
+        libraryPreload=new HashSet<>(cfg.libraryApps);
+        iconTiles=new HashSet<>(java.util.Arrays.asList(ctx.getResources().getStringArray(R.array.icon_tiles)));
+        uniformTiles=cfg.uniformTiles;focusOvershoot=cfg.focusOvershoot;
         this.favourites = cfg.dockApps;
         this.hidden = new HashSet<>(cfg.hiddenApps);
         this.showHomeSettings = cfg.showHomeSettingsShortcut;
@@ -256,7 +262,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.advancedEffects = cfg.animations && cfg.advancedEffects;
         this.reducedMotion = cfg.reducedMotion;
         this.navigationSounds = cfg.navigationSounds;
-        this.showLibrary = cfg.appLibrary;
+        this.showLibrary = LibraryApps.showPill(cfg.appLibrary,cfg.libraryButton,cfg.showLibraryPill);
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
@@ -274,7 +280,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         Set<String> tvPackages = new HashSet<>();
         for (ResolveInfo ri : found) if (ri.activityInfo != null) tvPackages.add(ri.activityInfo.packageName);
         leanbackPackages = tvPackages;
-        Set<String> added = LibraryApps.load(ctx);
+        Set<String> added = new HashSet<>(LibraryApps.load(ctx));
+        added.addAll(libraryPreload);
         Set<String> removed = LibraryApps.loadRemoved(ctx);
         if (!added.isEmpty()) {
             Set<String> listed = new HashSet<>(tvPackages);
@@ -344,6 +351,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
         String art = artKey(ri);
         String artwork = appBanners.get(pkg);
+        if(artwork==null&&(uniformTiles||iconTiles.contains(pkg)))artwork="icon";
         boolean linkedIcon = AppArtwork.isAppIcon(artwork);
         Drawable banner = "custom".equals(artwork) ? AppArtwork.load(ctx, pkg) : bundledBanner(artwork);
         if (banner == null && !"icon".equals(artwork) && !linkedIcon) banner = previousBanners.containsKey(art) ? previousBanners.get(art) : loadBanner(pm, ri);
@@ -418,7 +426,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         nameLp.width = w;
         nameLp.topMargin = h + Math.round(6 * density);
         name.setLayoutParams(nameLp);
-        return new Holder(v, listener, animations, advancedEffects, reducedMotion, restNameAlpha);
+        return new Holder(v, listener, animations, advancedEffects, reducedMotion, focusOvershoot, restNameAlpha);
     }
 
     @Override public void onViewAttachedToWindow(@NonNull RecyclerView.ViewHolder holder) {
@@ -612,8 +620,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (leanbackPackages.contains(e.pkg)) i.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         String action = launchActions.get(e.pkg);
         if (action != null) {
-            Intent byAction = new Intent(action).setPackage(e.pkg)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+            String input = LaunchActions.inputId(action);
+            if (input != null && ctx instanceof MainActivity) { ((MainActivity)ctx).openInput(input); return; }
+            Intent byAction = LaunchActions.intent(e.pkg,action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             if (ctx.getPackageManager().resolveActivity(byAction, 0) != null) i = byAction;
         }
         try {
@@ -785,11 +794,11 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         final ImageView icon;
         final TextView label;
         final TextView name;
-        final boolean animations, advancedEffects, reducedMotion;
+        final boolean animations, advancedEffects, reducedMotion, focusOvershoot;
         final float restNameAlpha;
         boolean suppressConfirmRelease;
 
-        Holder(View v, TileListener listener, boolean animations, boolean advancedEffects, boolean reducedMotion, float restNameAlpha) {
+        Holder(View v, TileListener listener, boolean animations, boolean advancedEffects, boolean reducedMotion, boolean focusOvershoot, float restNameAlpha) {
             super(v);
             card = v.findViewById(R.id.card);
             // The launcher draws its own app-colour focus light; avoid a platform fill behind glass.
@@ -801,6 +810,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             this.animations = animations;
             this.advancedEffects = advancedEffects;
             this.reducedMotion = reducedMotion;
+            this.focusOvershoot = focusOvershoot;
             this.restNameAlpha = restNameAlpha;
 
             final float density = v.getResources().getDisplayMetrics().density;
@@ -884,7 +894,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     } else {
                         // Advanced effects settle with a softer overshoot: the lift already carries the motion.
                         zoom.setDuration(advancedEffects ? (focused ? 220 : 170) : (focused ? 260 : 180))
-                                .setInterpolator(new OvershootInterpolator(focused ? (advancedEffects ? 0.7f : 1.6f) : 0f))
+                                .setInterpolator(new OvershootInterpolator(focused && focusOvershoot ? (advancedEffects ? 0.7f : 1.6f) : 0f))
                                 .start();
                         name.animate().alpha(focused ? 1f : restNameAlpha)
                                 .translationY(focused ? density * 4f : -density * 6f)

@@ -35,6 +35,10 @@ import java.util.function.Consumer;
 
 /** Focusable, grouped glass settings for features that previously required editing a theme by hand. */
 public final class FeatureSettingsActivity extends Activity {
+    @Override protected void attachBaseContext(android.content.Context base) {
+        super.attachBaseContext(LauncherLocale.wrap(base));
+    }
+
     static final String PAGE = "feature_page";
     static final String WALLPAPER = "wallpaper", SKY = "sky", APPS = "apps", REMOTE = "remote", CLOCK = "clock";
     private SharedPreferences features, choices;
@@ -62,7 +66,7 @@ public final class FeatureSettingsActivity extends Activity {
             editingPackage = state.getString("editing_package");
             imagePackage = state.getString("image_package");
             changed = state.getBoolean("changed");
-            if (changed) setResult(RESULT_OK);
+            if (changed) Config.markSettingsChanged(FeatureSettingsActivity.this); setResult(RESULT_OK);
         }
         features = FeaturePreferences.prefs(this);
         choices = getSharedPreferences(Config.SETTINGS_NAME, 0);
@@ -146,7 +150,7 @@ public final class FeatureSettingsActivity extends Activity {
         row.setToggle(value);
         if (help != 0) row.setOnFocusChangeListener((v, focused) -> { if (focused) { selectedKey = key; summary.setText(help); } });
     }
-    private void markChanged() { changed = true; setResult(RESULT_OK); }
+    private void markChanged() { changed = true; Config.markSettingsChanged(FeatureSettingsActivity.this); setResult(RESULT_OK); }
     private void integerChoice(String key, int label, int current, int[] values, String[] labels, int icon) {
         int checked = -1; for (int i = 0; i < values.length; i++) if (values[i] == current) checked = i;
         final int selected = checked;
@@ -155,6 +159,8 @@ public final class FeatureSettingsActivity extends Activity {
                     features.edit().putInt(key, values[which]).apply(); markChanged(); render();
                 }));
     }
+
+    static final int[] DOCK_OPACITIES = {100, 70, 50, 30};
 
     private void wallpapers() {
         heading(R.string.feature_wallpapers, R.string.feature_wallpaper_help); section(R.string.feature_wallpapers);
@@ -170,6 +176,8 @@ public final class FeatureSettingsActivity extends Activity {
                             markChanged(); render();
                         }));
         toggle("wallpaper_true_color", R.string.feature_true_color, config.wallpaperTrueColor, R.drawable.ic_quick_picture, 0xFFFF9F0A, R.string.feature_true_color_help);
+        integerChoice("dock_opacity", R.string.dock_opacity_label, config.dockOpacity, DOCK_OPACITIES,
+                new String[]{"100%","70%","50%","30%"}, R.drawable.ic_quick_picture);
         integerChoice("wallpaper_dim", R.string.feature_dim, config.wallpaperDim, new int[]{0, 20, 35, 50, 70},
                 new String[]{"0%", "20%", "35%", "50%", "70%"}, R.drawable.ic_quick_picture);
     }
@@ -255,8 +263,29 @@ public final class FeatureSettingsActivity extends Activity {
         heading(R.string.feature_idle_clock, R.string.feature_idle_help); section(R.string.feature_idle_clock);
         int[] minutes = {0, 5, 10, 15, 30, 60};
         integerChoice("home_idle_clock_minutes", R.string.feature_clock_timer, config.homeIdleClockMinutes, minutes, minuteLabels(minutes), R.drawable.ic_settings_motion);
+        toggle("clock_wallpaper", R.string.feature_clock_wallpaper, config.clockWallpaper, R.drawable.ic_quick_picture,0xFF0A84FF,0);
+        toggle("clock_glow", R.string.feature_clock_glow, config.clockGlow,R.drawable.ic_quick_picture,0xFFBF5AF2,0);
+        integerChoice("clock_wallpaper_dim",R.string.feature_dim,config.clockWallpaperDim,new int[]{0,20,35,50,70,90},
+                new String[]{"0%","20%","35%","50%","70%","90%"},R.drawable.ic_quick_picture);
+        if(config.openOnStartChoice) {
+            String picked=choices.getString(OpenOnStart.KEY,"");
+            row("open_on_start",R.string.open_on_start_label,picked.isEmpty()?getString(R.string.off):appName(picked),
+                    R.drawable.ic_quick_apps,0xFF0A84FF,this::chooseStartupApp);
+            integerChoice("open_on_start_network_wait",R.string.feature_startup_wait,config.openOnStartNetworkWait,
+                    new int[]{0,30,60,120,300,600},new String[]{getString(R.string.off),"30 s","60 s","120 s","300 s","600 s"},R.drawable.ic_settings_motion);
+        }
         row("clock_preview", R.string.feature_clock_preview, "", R.drawable.ic_quick_screensaver, 0xFF0A84FF,
                 () -> startActivity(new Intent(this, ClockActivity.class)));
+    }
+
+    private void chooseStartupApp() {
+        List<ResolveInfo> apps=catalog();
+        String[] labels=new String[apps.size()+1];labels[0]=getString(R.string.off);
+        for(int i=0;i<apps.size();i++)labels[i+1]=label(apps.get(i));
+        choose(getString(R.string.open_on_start_label),labels,-1,which->{
+            String pkg=which==0?"":apps.get(which-1).activityInfo.packageName;
+            choices.edit().putString(OpenOnStart.KEY,pkg).apply();OpenOnStart.skipThisBoot(this);markChanged();render();
+        });
     }
 
     private List<ResolveInfo> catalog() {
@@ -295,8 +324,8 @@ public final class FeatureSettingsActivity extends Activity {
                 }));
         row("app_action", R.string.feature_app_action, appValue("launch_actions", pkg).isEmpty() ? getString(R.string.feature_default) : getString(R.string.feature_custom),
                 R.drawable.ic_quick_apps, 0xFF0A84FF, () -> textInput(getString(R.string.feature_app_action), appValue("launch_actions", pkg), getString(R.string.feature_app_action_help), value -> {
-                    if (!value.isEmpty()) {
-                        ResolveInfo target = getPackageManager().resolveActivity(new Intent(value).setPackage(pkg), 0);
+                    if (!value.isEmpty() && LaunchActions.inputId(value) == null) {
+                        ResolveInfo target = getPackageManager().resolveActivity(LaunchActions.intent(pkg,value), 0);
                         if (target == null || target.activityInfo == null || !target.activityInfo.exported
                                 || target.activityInfo.permission != null && checkSelfPermission(target.activityInfo.permission)
                                 != android.content.pm.PackageManager.PERMISSION_GRANTED)

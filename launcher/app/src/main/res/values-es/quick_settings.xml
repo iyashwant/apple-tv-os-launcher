@@ -12,8 +12,6 @@
     <string name="quick_accessories">Mandos y accesorios</string>
     <string name="quick_on">Activado</string>
     <string name="quick_off">Desactivado</string>
-    <string name="quick_picture">Imagen</string>
     <string name="quick_audio_output">Salida de audio</string>
-    <string name="quick_apps">Aplicaciones</string>
     <string name="quick_sound">Sonido</string>
 </resources>

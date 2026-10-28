@@ -1,8 +1,8 @@
 """tools/check.py against a simulated TV (#359).
 
 The property worth testing is the one no TV shows on demand: what the drift report says after a
-firmware update, and that --fix puts back only what drifted, without touching the recovery record
-undo depends on. tools/tv.py is replaced by a fake that answers the queries from a JSON file, so the
+firmware update, and that --fix puts back only what drifted, without writing a recovery record of
+its own. tools/tv.py is replaced by a fake that answers the queries from a JSON file, so the
 real check.py logic runs and only the ADB transport is simulated.
 
 Run from the repository root: python3 -m unittest discover -s tests -v
@@ -54,8 +54,10 @@ def answer(command):
         return dumpsys_package(command.split()[-1])
     if "resolve-activity" in command:
         return (state["home"] or "") + "\n"
-    if "query-activities" in command:
+    if "query-activities" in command and "category.HOME" in command:
         return "".join(f"  {component}\n" for component in state["home_activities"])
+    if "query-activities" in command and "cursor.item/channel" in command:
+        return "".join(f"  {name}/.MainActivity\n" for name in state.get("input_apps", []))
     return ""
 
 
@@ -79,7 +81,10 @@ def apply(command):
         if name not in state["disabled"] and name not in state.get("pinned", []):
             state["disabled"].append(name)
     elif command.startswith("cmd package set-home-activity --user 0 "):
-        state["home"] = command.split()[-1]
+        # Some firmware answers the switch and keeps Home where it was (the Chromecast with Google TV
+        # 4K list records it); home_locked plays that firmware.
+        if not state.get("home_locked"):
+            state["home"] = command.split()[-1]
     save()
 
 
@@ -306,6 +311,16 @@ class DriftCheckTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn(f"pm disable-user --user 0 {SETUP}", self.sent())
 
+    def test_fix_leaves_the_app_that_opens_the_inputs_on(self):
+        # The update turned the Live TV app back on; it is what the launcher's HDMI tiles open.
+        self.write_list(["com.example.livetv", "com.example.music"])
+        self.tv(installed=BASE + ["com.example.livetv"], input_apps=["com.example.livetv"],
+                disabled=["com.example.store", STOCK])
+        result = self.run_check("--fix", str(self.list_path))
+        self.assertIn("leaving com.example.livetv on", result.stdout)
+        self.assertIn("pm disable-user --user 0 com.example.music", self.sent())
+        self.assertNotIn("pm disable-user --user 0 com.example.livetv", self.sent())
+
     def test_fix_leaves_setupwraith_on_when_the_wifi_cannot_be_read(self):
         self.write_list([SETUP])
         self.tv(installed=BASE + [SETUP], disabled=["com.example.store", STOCK], wifi="")
@@ -358,6 +373,19 @@ class DriftCheckTest(unittest.TestCase):
         self.assertIn(f"Home: set to {CUSTOM}/.MainActivity", result.stdout)
         self.assertNotIn(FALLBACK, " ".join(self.sent()))
 
+    def test_fix_does_not_take_home_to_a_factory_test_app(self):
+        # com.duokan.factorytest/.FactoryLauncher answers HOME on a Xiaomi Mi TV 4A; Home on it is the
+        # factory test screen, so with no launcher left --fix changes nothing rather than move Home there.
+        self.write_list(["com.example.music", STOCK])
+        self.tv(installed=["com.example.music", "com.example.store", STOCK, "com.duokan.factorytest"],
+                disabled=["com.example.music", "com.example.store"],
+                home=f"{STOCK}/.MainActivity",
+                home_activities=[FACTORY, f"{STOCK}/.MainActivity"])
+        result = self.run_check("--fix", str(self.list_path))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("launcher/build-and-install.sh", result.stdout)
+        self.assertNotIn("set-home-activity", " ".join(self.sent()))
+
     def test_fix_refuses_a_home_only_a_fallback_can_take(self):
         self.write_list(["com.example.music", STOCK])
         self.tv(installed=["com.example.music", "com.example.store", STOCK, "com.tcl.tv"],
@@ -379,7 +407,8 @@ class DriftCheckTest(unittest.TestCase):
         self.write_list(["com.example.music", "com.example.store; reboot"])
         self.tv(disabled=[STOCK])
         result = self.run_check("--fix", str(self.list_path))
-        self.assertNotEqual(result.returncode, 0)
+        # 2, the list could not be used: 1 is what a weekly job reads as drift.
+        self.assertEqual(result.returncode, 2, result.stderr)
         self.assertIn("not a package name", result.stderr)
         self.assertEqual(self.sent(), [])
 
@@ -394,6 +423,8 @@ MEDIATEK_INPUT = "com.mediatek.tvinput"
 BASE = ["com.example.music", "com.example.store", STOCK, CUSTOM]
 # What a TCL set shows when no launcher is enabled; not a home the viewer can use.
 FALLBACK = "com.tcl.keycustomfunctionservice/.FallbackHome"
+# Xiaomi's factory test, which answers HOME on a Mi TV 4A.
+FACTORY = "com.duokan.factorytest/.FactoryLauncher"
 
 
 if __name__ == "__main__":

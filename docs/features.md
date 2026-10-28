@@ -104,3 +104,25 @@ The privileged ThemeProvider’s `continue-watching-status` reports permission, 
 per-app counts without returning titles. `ContinueWatchingSmoke` exercises real provider fixtures,
 the toggle, navigation, launching, disabled state, filters, deduplication and interrupted transitions
 on an emulator only.
+
+## Upstream capabilities in the Apple-style fork
+
+The glass App Library opens every app with OK; hold manages Home membership. Menu on a Home or
+folder tile opens the same glass actions as hold OK. Add to dock chooses a dock place, and Replace
+in dock swaps that dock app with a tile from the grid, preserving folder contents and saved order.
+
+Wallpaper settings include dock opacity. Idle clock settings include Home's wallpaper, dimming and
+ambient glow. With `open_on_start_choice` enabled in configuration, the same grouped screen also
+offers an app to open once per boot and a bounded network wait. Leaving Home cancels that pending
+launch. Caption files, time-of-day wallpaper groups, language override, lunar date, VPN/network
+status and Game Day remain optional configuration capabilities.
+
+App launch actions additionally accept `view:<uri>` for a URI in the selected app and `input:<id>`
+for a TV input. Remote configuration can provide tap, hold and front-app actions; learned personal
+mappings continue to override theme mappings. Game controllers, repeated volume keys and vendor
+input routes use the upstream compatibility options while retaining the fork's own menus.
+
+The build includes optional helper restoration and standby/revival support. `restore_key_services`,
+stock-Home/power-on redirection and standby repair remain off unless configured. Notification access
+is not enabled by installing the launcher, and secure-settings permission is not granted by the
+normal install path. The fork's original network/TV-listings features remain independently opt-in.

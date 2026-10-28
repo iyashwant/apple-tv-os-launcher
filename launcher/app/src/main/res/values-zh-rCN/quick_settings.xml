@@ -12,8 +12,6 @@
     <string name="quick_accessories">遥控器和配件</string>
     <string name="quick_on">开启</string>
     <string name="quick_off">关闭</string>
-    <string name="quick_picture">画面</string>
     <string name="quick_audio_output">音频输出</string>
-    <string name="quick_apps">应用</string>
     <string name="quick_sound">声音</string>
 </resources>

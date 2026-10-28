@@ -59,7 +59,13 @@ final class QuickSettingsActions {
     }
 
     static Intent systemIntent(Context context, String standardAction, Map<String, String> routes) {
-        return chooseSystemIntent(standardAction, routes, intent -> available(context, intent) != null);
+        Intent chosen=chooseSystemIntent(standardAction,routes,intent -> available(context,intent)!=null);
+        if(available(context,chosen)!=null) return chosen;
+        for(String value:context.getResources().getStringArray(R.array.settings_fallback_components)){
+            Intent candidate=component(context,value);if(candidate!=null)return candidate;
+        }
+        Intent aosp=component(context,"com.android.tv.settings/.MainSettings");
+        return aosp!=null?aosp:chosen;
     }
 
     static Intent chooseSystemIntent(String standardAction, Map<String, String> routes,
@@ -105,7 +111,8 @@ final class QuickSettingsActions {
     private static Intent available(Context context, Intent intent) {
         try {
             ResolveInfo resolved = context.getPackageManager().resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
-            return resolved != null && launchable(context, resolved.activityInfo) ? intent : null;
+            return resolved != null && !resolved.activityInfo.name.contains("CTSDummy")
+                    && launchable(context, resolved.activityInfo) ? intent : null;
         } catch (RuntimeException unavailable) {
             return null;
         }

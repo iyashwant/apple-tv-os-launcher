@@ -34,6 +34,10 @@ import java.util.concurrent.Executors;
 final class WallpaperPlayer {
     private static final String PREFERENCES = "wallpaper_rotation";
 
+    private final Config config;
+    private final String latitude, longitude;
+    private final java.util.Map<String,String> captions;
+    private final android.widget.TextView caption;
     private final FrameLayout root;
     private final ImageView image;
     private final Resources resources;
@@ -60,11 +64,25 @@ final class WallpaperPlayer {
 
     WallpaperPlayer(Context context, FrameLayout root, Config config) {
         this.root = root;
+        this.config=config;
+        android.content.SharedPreferences features=FeaturePreferences.prefs(context);
+        latitude=features.getString("latitude",context.getString(R.string.latitude));
+        longitude=features.getString("longitude",context.getString(R.string.longitude));
         resources = context.getResources();
         aurora = Config.WALLPAPER_AURORA.equals(config.wallpaperChoice);
         backgroundColor = config.backgroundColor;
         dimColor = !aurora && config.wallpaperEnabled ? (config.wallpaperDim * 255 / 100) << 24 : 0;
         files = aurora ? new ArrayList<>() : new ArrayList<>(config.wallpapers);
+        captions=config.wallpaperCaptions && !files.isEmpty()
+                ? WallpaperCaptions.read(files.get(0).getParentFile()) : java.util.Collections.emptyMap();
+        if(!captions.isEmpty()) {
+            caption=new android.widget.TextView(context);caption.setTextColor(0x99FFFFFF);caption.setTextSize(12);
+            caption.setTypeface(UiFont.get(context,R.string.font_regular));caption.setSingleLine(true);
+            caption.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(-2,-2,android.view.Gravity.TOP|android.view.Gravity.END);
+            float density=context.getResources().getDisplayMetrics().density;
+            lp.topMargin=Math.round(90*density);lp.setMarginEnd(Math.round(64*density));root.addView(caption,lp);
+        } else caption=null;
         interval = config.wallpaperRotationMinutes * 60_000L;
         order = config.wallpaperOrder;
         bitmapConfig = config.wallpaperTrueColor ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
@@ -84,20 +102,12 @@ final class WallpaperPlayer {
         if (!aurora && (!config.wallpaperEnabled || files.isEmpty())) return;
         root.addView(image, 0, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        // No shade layer at all when the theme doesn't dim: a full-screen view is overdraw on 1 GB TVs.
-        if (!aurora && config.wallpaperDim > 0) {
-            View shade = new View(context);
-            shade.setBackgroundColor((config.wallpaperDim * 255 / 100) << 24);
-            shade.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-            root.addView(shade, 1, new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        }
         if (aurora) {
             first = CompletableFuture.supplyAsync(() -> decode(null), decoder);
         } else {
             String previous = preferences.getString("image", "");
-            firstFile = WallpaperRotation.find(files, previous);
-            if (firstFile == null) firstFile = WallpaperRotation.pick(files, previous, order, random);
+            firstFile = WallpaperRotation.find(activeFiles(), previous);
+            if (firstFile == null) firstFile = WallpaperRotation.pick(activeFiles(), previous, order, random);
             File opening = firstFile;
             first = CompletableFuture.supplyAsync(() -> decode(opening), decoder);
         }
@@ -114,6 +124,8 @@ final class WallpaperPlayer {
     /** Home is visible: the opening picture goes up (waiting for its decode), then a due rotation runs. */
     void start() {
         active = true;
+        if(aurora && first==null && image.getDrawable()==null)
+            first=CompletableFuture.supplyAsync(() -> decode(null),decoder);
         if (first != null) {
             Bitmap bitmap = null;
             try {
@@ -146,10 +158,10 @@ final class WallpaperPlayer {
     void update() {
         if (aurora || !active || closed || loading || first != null || files.isEmpty()) return;
         String previous = preferences.getString("image", "");
-        File selected = WallpaperRotation.find(files, previous);
+        File selected = WallpaperRotation.find(activeFiles(), previous);
         long changed = preferences.getLong("changed", 0);
         if (selected == null || WallpaperRotation.due(changed, System.currentTimeMillis(), interval)) {
-            selected = WallpaperRotation.pick(files, previous, order, random);
+            selected = WallpaperRotation.pick(activeFiles(), previous, order, random);
         }
         if (selected == null || selected.getName().equals(displayed)) return;
         File next = selected;
@@ -176,7 +188,8 @@ final class WallpaperPlayer {
 
     private void remember(File shown, String previous, boolean force) {
         displayed = shown.getName();
-        if (force || !displayed.equals(previous)) {
+        if(caption!=null) {String name=captions.get(displayed);caption.setText(name);caption.setVisibility(name==null?View.GONE:View.VISIBLE);}
+        if (force || !displayed.equals(previous) || preferences.getLong("changed",0)==0) {
             preferences.edit().putString("image", displayed)
                     .putLong("changed", System.currentTimeMillis()).apply();
         }
@@ -191,6 +204,20 @@ final class WallpaperPlayer {
         if (!bitmap.hasAlpha()) root.setBackground(null);
     }
 
+    private List<File> activeFiles() {
+        if(config.wallpaperMoods.isEmpty()) return files;
+        java.time.LocalDateTime now=java.time.LocalDateTime.now();
+        int[] sun=WallpaperMood.sun(now.toLocalDate(),latitude,longitude,java.time.ZoneId.systemDefault());
+        return WallpaperMood.select(files,config.wallpaperMoods,
+                WallpaperMood.timeOfDay(now.getHour()*60+now.getMinute(),sun[0],sun[1]));
+    }
+
+    void releaseMemory() {
+        if(active) return;
+        image.setImageDrawable(null);displayed="";root.setBackgroundColor(backgroundColor);
+        if(mirror!=null)mirror.invalidate();
+    }
+
     void setMirror(View view) { mirror = view; }
 
     /** Draw the same image matrix and shade, without another decode, bitmap or Home tile snapshot. */
@@ -198,7 +225,7 @@ final class WallpaperPlayer {
         canvas.drawColor(backgroundColor);
         if (image.getParent() == root) {
             image.draw(canvas);
-            if (dimColor != 0) canvas.drawColor(dimColor);
+
         }
     }
 
@@ -262,6 +289,11 @@ final class WallpaperPlayer {
                 if (fitted != bmp) bmp.recycle();
                 bmp = fitted;
             }
+            if(dimColor!=0){
+                if(!bmp.isMutable()){Bitmap mutable=bmp.copy(bitmapConfig,true);if(mutable==null)return bmp;bmp.recycle();bmp=mutable;}
+                new Canvas(bmp).drawColor(dimColor);
+            }
+            bmp.prepareToDraw();
             return bmp;
         } catch (Exception | OutOfMemoryError e) {
             // A bad or huge picture must never take the home screen down; the plain colour stays.
