@@ -32,7 +32,7 @@ public final class TopBarSmoke extends Instrumentation {
                 activity.findViewById(R.id.btnInputs).setVisibility(View.VISIBLE);
             });
             settle();
-            int[] buttons = {R.id.btnInputs, R.id.btnWifi, R.id.btnSettings};
+            int[] buttons = {R.id.btnWifi, R.id.btnInputs, R.id.btnSettings};
             for (int column = 0; column < 6; column++) for (int button = 0; button < 3; button++) {
                 home(column);
                 key(KeyEvent.KEYCODE_DPAD_UP, 60);

@@ -232,6 +232,12 @@
                     android:src="@drawable/ic_apps" android:visibility="gone" />
 
                 <TextView
+                    android:id="@+id/btnInputs"
+                    style="@style/TopButton"
+                    android:text="@string/inputs"
+                    android:drawableStart="@drawable/ic_source_switch" />
+
+                <TextView
                     android:id="@+id/btnWifi"
                     style="@style/TopButton"
                     android:maxWidth="180dp"
@@ -239,12 +245,6 @@
                     android:ellipsize="end"
                     android:text="@string/wifi"
                     android:drawableStart="@drawable/ic_wifi" />
-
-                <TextView
-                    android:id="@+id/btnInputs"
-                    style="@style/TopButton"
-                    android:text="@string/inputs"
-                    android:drawableStart="@drawable/ic_input" />
             </LinearLayout>
             <LinearLayout android:id="@+id/racePanel" android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_below="@id/stats" android:layout_marginTop="12dp" android:orientation="vertical"

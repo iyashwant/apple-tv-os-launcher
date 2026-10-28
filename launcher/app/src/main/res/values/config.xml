@@ -219,7 +219,9 @@
     <bool name="dock_band_all">false</bool>
     <bool name="dock_even_padding">false</bool>
     <bool name="reorder_button">false</bool>
-    <bool name="icon_only_inputs">false</bool>
+    <!-- This fork uses a compact source-switch button between Wi-Fi and Settings. A theme can
+         set icon_only_inputs to false to restore the Inputs label. -->
+    <bool name="icon_only_inputs">true</bool>
     <bool name="wifi_status_color">false</bool>
     <bool name="wifi_status_warnings">false</bool>
     <bool name="show_library_pill">true</bool>
