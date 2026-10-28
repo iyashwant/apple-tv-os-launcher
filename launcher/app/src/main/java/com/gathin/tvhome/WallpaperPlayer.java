@@ -61,6 +61,7 @@ final class WallpaperPlayer {
     private String displayed = "";
     private final int backgroundColor, dimColor;
     private View mirror;
+    private Runnable onChanged;
 
     WallpaperPlayer(Context context, FrameLayout root, Config config) {
         this.root = root;
@@ -199,6 +200,7 @@ final class WallpaperPlayer {
         // The previous picture is left to the garbage collector: the render thread may still draw it this frame.
         image.setImageBitmap(bitmap);
         if (mirror != null) mirror.invalidate();
+        if (onChanged != null) onChanged.run();
         // CENTER_CROP covers the whole screen, so the colour under an opaque picture would be one more
         // full-screen pass every frame. A picture with transparency keeps the colour behind it.
         if (!bitmap.hasAlpha()) root.setBackground(null);
@@ -219,6 +221,7 @@ final class WallpaperPlayer {
     }
 
     void setMirror(View view) { mirror = view; }
+    void setOnChanged(Runnable callback) { onChanged = callback; }
 
     /** Draw the same image matrix and shade, without another decode, bitmap or Home tile snapshot. */
     void drawBackground(Canvas canvas) {

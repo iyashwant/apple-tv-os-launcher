@@ -158,6 +158,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private FrameLayout root;
     /** The theme's picture, its rotating collection, or the bundled Aurora (Launcher settings). */
     private WallpaperPlayer wallpaperPlayer;
+    private HeaderGlass headerGlass;
     private GlassView glass;
     private ImageView ambient;
     private TextView heroName;
@@ -340,6 +341,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             sky.update();
             folderBackdrop.invalidate();
             wallpaperPlayer.update();
+            if (headerGlass != null) headerGlass.schedule();
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -560,6 +562,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
         if (festive) applyFestiveSkin();
+        headerGlass = new HeaderGlass(root, findViewById(R.id.topButtons), this::drawHeaderScene);
+        wallpaperPlayer.setOnChanged(() -> {
+            if (headerGlass != null) headerGlass.schedule();
+        });
 
         // Header and grid directions share the activity key router. Do not send Down through
         // TextView/Android focus search to the RecyclerView container instead of an actual card.
@@ -662,6 +668,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (homeGrid.getAdapter() == null) homeGrid.setAdapter(homeAdapter);
         if (tilesOutdated()) reloadTiles();
         wallpaperPlayer.start();
+        headerGlass.setActive(true);
         if (savingOrderNow && savingLayout != null) adapter.restoreLayout(savingLayout);
         syncFolderPresentation();
         updateClockVisibility();
@@ -767,6 +774,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         paused = true;
+        if (headerGlass != null) headerGlass.setActive(false);
         if (integration != null) integration.pause();
         restoreContinueFocus = continueShelf.hasFocus();
         continueShelf.stop();
@@ -829,6 +837,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         handler.removeCallbacks(clockCheck);
         root.removeCallbacks(showIdleClock);
         wallpaperPlayer.close();
+        if (headerGlass != null) headerGlass.setActive(false);
         continueShelf.close();
         unregisterReceiver(packageChanges);
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
@@ -884,6 +893,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean whiteFocus=cinematic && integrationConfig.cinematicWhiteFocus
                 && adapter==homeAdapter && position<COLUMNS;
         glass.setTint(whiteFocus?Color.WHITE:adapter.ambientColorAt(position));
+        if (headerGlass != null) headerGlass.schedule();
         alignTilePresentation(position, card);
         if (gridTransition) return;
         ensureTileVisible(position, card);
@@ -1109,6 +1119,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             ambient.setImageDrawable(ambientGlow);
         }
         ambientGlow.setTint(0xFF000000 | color);
+    }
+
+    /** The material sees the scene under the controls, never a second copy of their text/icons. */
+    private void drawHeaderScene(Canvas canvas) {
+        wallpaperPlayer.drawBackground(canvas);
+        sky.drawBackdrop(canvas, root.getWidth(), root.getHeight());
+        if (ambient.getDrawable() != null && ambient.getAlpha() > 0f) {
+            int save = canvas.saveLayerAlpha(0, 0, root.getWidth(), root.getHeight(),
+                    Math.round(255 * ambient.getAlpha()));
+            ambient.draw(canvas);
+            canvas.restoreToCount(save);
+        }
     }
 
     /**
@@ -3233,6 +3255,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** Drop in: fade and unfold from the top edge, hanging under the anchor pill. */
     private void dropIn(PopupWindow popup, View panel, View anchor, int gravity) {
+        // Measure and capture before the popup exists, so the glass never captures its own rows.
+        int width = popup.getWidth() > 0 ? popup.getWidth() : panel.getMeasuredWidth();
+        panel.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(root.getHeight(), View.MeasureSpec.AT_MOST));
+        int[] at = new int[2], origin = new int[2];
+        anchor.getLocationOnScreen(at);
+        root.getLocationOnScreen(origin);
+        int left = at[0] - origin[0];
+        int absolute = Gravity.getAbsoluteGravity(gravity, anchor.getLayoutDirection());
+        if ((absolute & Gravity.HORIZONTAL_GRAVITY_MASK) == Gravity.RIGHT)
+            left += anchor.getWidth() - width;
+        left = Math.max(0, Math.min(root.getWidth() - width, left));
+        int top = at[1] - origin[1] + anchor.getHeight() + dp(10);
+        panel.setBackground(new FrostedGlassDrawable(root,
+                new Rect(left, top, left + width, top + panel.getMeasuredHeight()), density, 24));
         panel.setAlpha(0f);
         panel.setPivotY(0f);
         panel.setScaleY(0.92f);

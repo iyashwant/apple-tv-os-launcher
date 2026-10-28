@@ -6,7 +6,7 @@
     android:orientation="vertical"
     android:background="@drawable/glass_panel"
     android:padding="6dp"
-    android:elevation="12dp">
+    android:elevation="0dp">
 
     <LinearLayout
         android:id="@+id/rows"
