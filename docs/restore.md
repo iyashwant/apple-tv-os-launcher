@@ -1,6 +1,6 @@
 # Restoring your TV
 
-[Back to the README](../README.md#restoring-your-tv)
+[Back to the README](../README.upstream.md#restoring-your-tv)
 
 Keep the list you applied. One line puts the TV back the way it was:
 

@@ -146,8 +146,13 @@ class ThisRepositoryTest(unittest.TestCase):
         once = gen_tables.render(ROOT)
         self.assertEqual(gen_tables.render(ROOT, texts=once), once)
 
+    def test_product_front_page_is_outside_the_generated_device_guide(self):
+        generated = gen_tables.render(ROOT)
+        self.assertNotIn("README.md", generated)
+        self.assertIn("README.upstream.md", generated)
+
     def test_the_brand_grid_counts_every_folder_once(self):
-        readme = gen_tables.render(ROOT)["README.md"]
+        readme = gen_tables.render(ROOT)["README.upstream.md"]
         block = section(readme, "tv-brands")
         top = grid(block)
         line, summary = below_grid(block)
@@ -165,7 +170,7 @@ class ThisRepositoryTest(unittest.TestCase):
                                   f"{len(names)} projector brands</summary>")
 
     def test_the_grid_is_the_thirty_brands_with_the_most_lists(self):
-        block = section(gen_tables.render(ROOT)["README.md"], "tv-brands")
+        block = section(gen_tables.render(ROOT)["README.upstream.md"], "tv-brands")
         self.assertEqual(block[:2], GRID_HEAD)
         rows = [r for r in block if r.startswith("| [")]
         self.assertEqual(len(rows), 5, "30 brands in 6 columns make 5 rows")
@@ -181,9 +186,9 @@ class ThisRepositoryTest(unittest.TestCase):
 
     def test_the_readme_has_no_table_and_the_translation_keeps_its_block(self):
         texts = gen_tables.render(ROOT)
-        self.assertFalse(gen_tables.has_markers(texts["README.md"], "tv-table"))
+        self.assertFalse(gen_tables.has_markers(texts["README.upstream.md"], "tv-table"))
         self.assertIn("README.nl.md", texts)
-        self.assertEqual(section(texts["README.nl.md"], "tv-brands"), section(texts["README.md"], "tv-brands"))
+        self.assertEqual(section(texts["README.nl.md"], "tv-brands"), section(texts["README.upstream.md"], "tv-brands"))
 
     def test_both_tables_are_in_the_same_alphabetical_order(self):
         texts = gen_tables.render(ROOT)

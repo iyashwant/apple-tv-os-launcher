@@ -43,7 +43,7 @@ from test_adb_closed import check  # noqa: E402
 from test_sabrina_cast_restart_note import bullets  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-README = (ROOT / "README.md").read_text(encoding="utf-8")
+README = (ROOT / "README.upstream.md").read_text(encoding="utf-8")
 FAQ = (ROOT / "docs" / "faq.md").read_text(encoding="utf-8")
 TROUBLE = (ROOT / "docs" / "TROUBLESHOOTING.md").read_text(encoding="utf-8")
 SCRIPTS = (ROOT / "tools" / "disable.sh", ROOT / "tools" / "disable.ps1")

@@ -27,7 +27,8 @@ The full table lives in examples/README.md between <!-- tv-table:start ... --> a
 README.md has no table of its own: its brand grid (the TOP brands with the most lists, linked to the site's
 search, and the rest in a <details>) sits between <!-- tv-brands:start ... --> and <!-- tv-brands:end -->.
 README.nl.md carries the same brand block, and a README that still has tv-table markers gets the short
-table there too. Everything outside the markers is hand-written.
+table there too. Everything outside the markers is hand-written. When README.upstream.md exists,
+that reference guide owns the English brand block and counts; the product README.md is left alone.
 The counts are the card's alt text ("N TV models · B brands · L languages · "), the "| **L languages** |"
 feature row and STATS in tools/readme_stats.py. Exit codes: 0 up to date (or written), 1 out of date
 (--check), or a count moved and --font could not draw one of the pictures (the tables are written; the
@@ -245,9 +246,13 @@ def render(root, texts=None):
 
     texts, if given, stands in for what those files hold now (by the same paths)."""
     entries = load(root)
-    paths = list(OWNED) + [p for p in TRANSLATIONS if (texts or {}).get(p) or (root / p).is_file()]
+    # The independent launcher has its own product front page. Keep the inherited device guide's
+    # generated tables there; small upstream trees can still use the original README.md layout.
+    reference = "README.upstream.md"
+    front = reference if (texts or {}).get(reference) or (root / reference).is_file() else "README.md"
+    paths = [front, *OWNED[1:]] + [p for p in TRANSLATIONS if (texts or {}).get(p) or (root / p).is_file()]
     now = {p: (texts or {}).get(p) or (root / p).read_text(encoding="utf-8") for p in paths}
-    out = {p: readme(now[p], entries, root, p) for p in ["README.md"] + paths[len(OWNED):]}
+    out = {p: readme(now[p], entries, root, p) for p in [front] + paths[len(OWNED):]}
     out["examples/README.md"] = between(now["examples/README.md"], "tv-table", examples_rows(entries),
                                         "examples/README.md")
     out["tools/readme_stats.py"] = stats(now["tools/readme_stats.py"], entries, root)

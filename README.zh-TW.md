@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · 正體中文 · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.ja.md">日本語</a> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a>
+  <a href="README.upstream.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · 正體中文 · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.ja.md">日本語</a> · <a href="README.it.md">Italiano</a> · <a href="README.nl.md">Nederlands</a>
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
 
 透過區域網路連接 Android TV 或 Google TV，停用不需要的預載應用程式、廣告和遙測服務，並在相容的裝置上安裝簡潔的原生啟動器。無須 root、刷機或 USB 傳輸線；清理工具只停用應用程式，不解除安裝，並提供還原腳本。
 
-本文介紹通用功能與操作方式。不同機型、地區和韌體的套件及限制可能不同，請先核對自己的裝置。最新功能以[英文 README](README.md)為準，各機型的測試紀錄請見[機型清單](examples/README.md)。
+本文介紹通用功能與操作方式。不同機型、地區和韌體的套件及限制可能不同，請先核對自己的裝置。最新功能以[英文 README](README.upstream.md)為準，各機型的測試紀錄請見[機型清單](examples/README.md)。
 
 **Samsung、LG、Roku 或其他非 Android 電視？** CleanYourTV 無法在這些電視上執行，但仍可用遙控器逐步關閉追蹤功能：[cleanyour.tv/not-android](https://cleanyour.tv/not-android)。
 
@@ -284,7 +284,7 @@ TV_HOST=192.168.1.50 tools/theme.sh --reset
   ```
 
 - **輸入來源鍵：**macOS／Linux 安裝時可使用 `INPUT_KEY_SERVICE=1` 啟用無障礙服務，支援 Google TV 遙控器的輸入來源按鈕；Windows 使用 `-InputKeyService`。
-- **Home／設定鍵與應用程式按鍵：**macOS／Linux 安裝時可使用 `HOME_KEY_SERVICE=1`，搭配 `config.xml` 或主題中的 `app_keys` 等設定；Windows 使用 `-HomeKeyService`。`settings_key_panel` 可讓設定鍵開啟快捷設定面板。詳細按鍵設定見[英文啟動器說明](README.md#the-launcher)。
+- **Home／設定鍵與應用程式按鍵：**macOS／Linux 安裝時可使用 `HOME_KEY_SERVICE=1`，搭配 `config.xml` 或主題中的 `app_keys` 等設定；Windows 使用 `-HomeKeyService`。`settings_key_panel` 可讓設定鍵開啟快捷設定面板。詳細按鍵設定見[英文啟動器說明](README.upstream.md#the-launcher)。
 
 無障礙按鍵服務必須用**實體遙控器**驗證，注入按鍵不算驗證。`am force-stop com.gathin.tvhome` 會關閉這些輔助服務，詳見[疑難排解](docs/TROUBLESHOOTING.md)。
 
@@ -330,7 +330,7 @@ TV_HOST=192.168.1.50 tools/venv/bin/python -I tools/check.py "examples/<your tv>
 
 `--fix` 會先處理 Home，再重新停用恢復啟用的項目，並讀回狀態確認；它會使用和停用工具相同的保護檢查。若已有最初的還原紀錄，會先補入新增套件狀態，不會另建一份把清理後狀態當成原始狀態的紀錄。
 
-若採用 `stock_home_redirect` 並刻意保留原廠 Home，請依[英文更新後說明](README.md#after-a-firmware-update)使用對應清單，並把原廠套件作為第二個參數，避免誤判。若清單停用了韌體更新服務，須先重新啟用才能更新。檢查完成後，請再次關閉 ADB。
+若採用 `stock_home_redirect` 並刻意保留原廠 Home，請依[英文更新後說明](README.upstream.md#after-a-firmware-update)使用對應清單，並把原廠套件作為第二個參數，避免誤判。若清單停用了韌體更新服務，須先重新啟用才能更新。檢查完成後，請再次關閉 ADB。
 
 ## 疑難排解
 
@@ -367,11 +367,11 @@ TV_HOST=192.168.1.50 tools/venv/bin/python -I tools/check.py "examples/<your tv>
 
 **也能封鎖應用程式內的廣告嗎？支援 AirPlay 嗎？**
 
-Android 9 以上的私人 DNS 是可選用的系統功能，並非啟動器本身的廣告過濾能力。DNS 解析服務會看見電視的 DNS 查詢，也無法移除和影片來自相同伺服器的 YouTube 廣告。AirPlay 並非內建功能，需要其他應用程式。這些選用方案與還原方式見[英文常見問題](README.md#questions-people-ask)。
+Android 9 以上的私人 DNS 是可選用的系統功能，並非啟動器本身的廣告過濾能力。DNS 解析服務會看見電視的 DNS 查詢，也無法移除和影片來自相同伺服器的 YouTube 廣告。AirPlay 並非內建功能，需要其他應用程式。這些選用方案與還原方式見[英文常見問題](README.upstream.md#questions-people-ask)。
 
 **電視設定中還有哪些隱私選項可調整？**
 
-Google TV 可檢查廣告個人化、位置、使用情況與診斷、持續掃描 Wi-Fi 等設定；選單位置依機型而異。部分選項由清單會停用的套件提供，應在清理前設定。原廠啟動器保留時也可考慮「僅限應用程式模式」，但會關閉搜尋與助理。各平台路徑和限制見[英文常見問題](README.md#questions-people-ask)。
+Google TV 可檢查廣告個人化、位置、使用情況與診斷、持續掃描 Wi-Fi 等設定；選單位置依機型而異。部分選項由清單會停用的套件提供，應在清理前設定。原廠啟動器保留時也可考慮「僅限應用程式模式」，但會關閉搜尋與助理。各平台路徑和限制見[英文常見問題](README.upstream.md#questions-people-ask)。
 
 **有現成的 APK 可以下載嗎？**
 
@@ -387,7 +387,7 @@ Google TV 可檢查廣告個人化、位置、使用情況與診斷、持續掃�
 
 ## 聯絡與安全通報
 
-電視使用問題請到 [GitHub Discussions](https://github.com/Gathin23/cleanyourtv/discussions) 討論。媒體與其他聯絡方式見[英文聯絡資訊](README.md#contact)。安全漏洞請透過儲存庫的 [Security 頁面](https://github.com/Gathin23/cleanyourtv/security)私下回報，詳見 [`SECURITY.md`](SECURITY.md)。
+電視使用問題請到 [GitHub Discussions](https://github.com/Gathin23/cleanyourtv/discussions) 討論。媒體與其他聯絡方式見[英文聯絡資訊](README.upstream.md#contact)。安全漏洞請透過儲存庫的 [Security 頁面](https://github.com/Gathin23/cleanyourtv/security)私下回報，詳見 [`SECURITY.md`](SECURITY.md)。
 
 ## 法律聲明
 

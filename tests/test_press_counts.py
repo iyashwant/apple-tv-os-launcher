@@ -15,7 +15,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 PRESS = ROOT / "docs" / "PRESS.md"
-README = ROOT / "README.md"
+README = ROOT / "README.upstream.md"
 FEATURED = ROOT / "tools" / "readme_featured.py"
 PRESS_RECIPE = ROOT / "docs" / "workflows" / "press.md"
 
@@ -129,7 +129,7 @@ class PressCountsTest(unittest.TestCase):
         # alt text by hand as well (6cc2fdc9), and a PR written from docs/workflows/press.md left
         # the Dutch front page claiming an older count.
         alts = card_alt_texts()
-        self.assertLessEqual({"README.md", "README.nl.md"}, set(alts),
+        self.assertLessEqual({"README.upstream.md", "README.nl.md"}, set(alts),
                              "README.md and README.nl.md no longer show docs/card.jpg with an alt text")
         numbers = (("article total", self.numbers["total"]),
                    ("country count", self.numbers["countries"]),

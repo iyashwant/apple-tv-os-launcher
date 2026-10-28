@@ -1,6 +1,6 @@
 # The microphone, and what can be said about it
 
-[Back to the README](../README.md#the-microphone-and-what-can-be-said-about-it)
+[Back to the README](../README.upstream.md#the-microphone-and-what-can-be-said-about-it)
 
 "Which of these packages is listening?" has no honest one-line answer, and a permission scan makes
 it worse:

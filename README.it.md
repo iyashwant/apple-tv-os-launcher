@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">正體中文</a> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.ja.md">日本語</a> · Italiano · <a href="README.nl.md">Nederlands</a>
+  <a href="README.upstream.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">正體中文</a> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.ja.md">日本語</a> · Italiano · <a href="README.nl.md">Nederlands</a>
 </p>
 
 <p align="center">
@@ -23,7 +23,7 @@ solo **disattivate**, mai rimosse, e c'è sempre uno script per ripristinarle.
 
 Questa pagina presenta le funzioni principali e l'uso. Ogni modello, area geografica e versione del firmware ha un
 elenco di app e dei limiti propri, quindi controlla prima quello della tua TV. Quando c'è una differenza, fa fede il
-[README in inglese](README.md); le note sui singoli modelli stanno nell'[elenco delle TV](examples/README.md).
+[README in inglese](README.upstream.md); le note sui singoli modelli stanno nell'[elenco delle TV](examples/README.md).
 
 **Samsung, LG, Roku o un'altra TV non Android?** CleanYourTV lì non funziona, ma puoi comunque disattivare il
 tracciamento, passo per passo con il telecomando: [cleanyour.tv/not-android](https://cleanyour.tv/not-android)
@@ -357,13 +357,13 @@ ADB a Internet dal router.
 Sì. La connessione ADB via TCP (di serie porta 5555) usata dagli strumenti non è cifrata, e alcuni firmware non
 chiedono nemmeno l'autorizzazione. Finito il lavoro, spegni il debug USB e il debug di rete / ADB, revoca le
 autorizzazioni date e verifica che la porta sia chiusa seguendo i
-[passaggi del README in inglese](README.md#questions-people-ask).
+[passaggi del README in inglese](README.upstream.md#questions-people-ask).
 
 **Supporta DNS privato o AirPlay?**
 
 Il DNS privato (Private DNS) è una funzione di sistema di Android in alcune versioni, non un blocco pubblicità del
 launcher, e non ferma tutta la pubblicità nei video. AirPlay non è incluso nel launcher e va installato e configurato a
-parte. Altre opzioni sono nelle [domande frequenti in inglese](README.md#questions-people-ask).
+parte. Altre opzioni sono nelle [domande frequenti in inglese](README.upstream.md#questions-people-ask).
 
 **C'è un APK già pronto?**
 
@@ -384,7 +384,7 @@ supportate e quello dei temi guarda direttamente le cartelle corrispondenti, cos
 
 Le domande sull'uso delle TV si possono fare su
 [GitHub Discussions](https://github.com/Gathin23/cleanyourtv/discussions). Per stampa e collaborazioni vedi la
-[sezione contatti in inglese](README.md#contact). Le vulnerabilità vanno segnalate in privato dalla
+[sezione contatti in inglese](README.upstream.md#contact). Le vulnerabilità vanno segnalate in privato dalla
 [pagina Security](https://github.com/Gathin23/cleanyourtv/security) del repository, vedi [`SECURITY.md`](SECURITY.md).
 
 ## Licenza

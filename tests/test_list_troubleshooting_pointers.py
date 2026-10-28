@@ -22,7 +22,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / "examples"
-README = (ROOT / "README.md").read_text(encoding="utf-8")
+README = (ROOT / "README.upstream.md").read_text(encoding="utf-8")
 DOC = (ROOT / "docs" / "TROUBLESHOOTING.md").read_text(encoding="utf-8")
 
 # "README, Troubleshooting", "README Troubleshooting", "the README troubleshooting section",

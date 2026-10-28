@@ -40,7 +40,7 @@ STEP_TWO = re.compile(r"^\**\s*2\.")
 
 def pages():
     """The English README and every translation beside it."""
-    return [ROOT / "README.md"] + sorted(ROOT.glob("README.*.md"))
+    return [ROOT / "README.upstream.md"] + sorted(p for p in ROOT.glob("README.*.md") if p.name != "README.upstream.md")
 
 
 def rows(text):

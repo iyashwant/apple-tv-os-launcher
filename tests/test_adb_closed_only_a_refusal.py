@@ -33,7 +33,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "tools" / "adb-closed.py"
-README = ROOT / "README.md"
+README = ROOT / "README.upstream.md"
 TV = "192.0.2.1"   # a documentation address; the stand-in answers for it, nothing on the network does
 NOTE = "is this computer: a relay answers for itself, not for the TV."
 

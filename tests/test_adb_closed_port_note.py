@@ -102,7 +102,7 @@ class TheSweep(unittest.TestCase):
 
     def test_the_sweep_reads_the_notes_and_the_readme(self):
         read = pages()
-        for page in (TROUBLE, SABRINA, ROOT / "README.md"):
+        for page in (TROUBLE, SABRINA, ROOT / "README.upstream.md"):
             self.assertIn(page, read)
 
 
